@@ -1783,6 +1783,7 @@ func (g *gitBackEnd) UpdateVettedMetadata(token []byte, mdAppend []backend.Metad
 	return g._updateVettedMetadata(token, mdAppend, mdOverwrite)
 }
 
+// Overwrites READNE.md in unvetted folder with new content
 func (g* gitBackEnd) overwriteReadmeFile(content string) error {
 	filename := pijoin(g.unvetted, "README.md")
 
@@ -1794,7 +1795,7 @@ func (g* gitBackEnd) overwriteReadmeFile(content string) error {
 	return nil
 }
 
-// updateReadme updates the README.md file. First up
+// Updates the README.md file
 func (g *gitBackEnd) _updateReadme(content string) error {
 	// git checkout master
 	err := g.gitCheckout(g.unvetted, "master")
@@ -1811,13 +1812,10 @@ func (g *gitBackEnd) _updateReadme(content string) error {
 	const tmpBranch = "updateReadmeTmp"
 
 	// Delete old temporary branch
-	err := g.gitBranchDelete(g.unvetted, tmpBranch)
-	if err != nil {
-		return err
-	}
+	_ = g.gitBranchDelete(g.unvetted, tmpBranch)
 
 	// Checkout temporary branch
-	err := g.gitNewBranch(g.unvetted, tmpBranch)
+	err = g.gitNewBranch(g.unvetted, tmpBranch)
 	if err != nil {
 		return err
 	}
@@ -1847,14 +1845,15 @@ func (g *gitBackEnd) _updateReadme(content string) error {
 	}
 
 	// create and rebase PR
-	return g.rebasePR(idTmp)
-
+	return g.rebasePR(tmpBranch)
 }
 
 
-// updateReadme updates the README.md file. First up
+// UpdateReadme updates the README.md file.
+//
+// UpdateReadme satisfies the backend interface.
 func (g *gitBackEnd) UpdateReadme(content string) error {
-	log.Debugf("UpdateReadme", token)
+	log.Debugf("UpdateReadme")
 
 	// Lock filesystem
 	g.Lock()

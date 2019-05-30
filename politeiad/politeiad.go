@@ -505,7 +505,7 @@ func (p *politeia) updateReadme(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := p.identity.SignMessage
+	response := p.identity.SignMessage(challenge)
 
 	reply := v1.UpdateReadmeReply{
 		Response: hex.EncodeToString(response[:]),
@@ -514,6 +514,7 @@ func (p *politeia) updateReadme(w http.ResponseWriter, r *http.Request) {
 	err = p.backend.UpdateReadme(t.Content)
 	if err != nil {
 		errorCode := time.Now().Unix()
+		log.Errorf("Error updating readme: %v", err)
 		p.respondWithServerError(w, errorCode)
 		return
 	}
@@ -1203,7 +1204,7 @@ func _main() error {
 		p.setVettedStatus, permissionAuth)
 	p.addRoute(http.MethodPost, v1.UpdateVettedMetadataRoute,
 		p.updateVettedMetadata, permissionAuth)
-	p.addRoute(http.MethodPost, v1.UpdateReadme,
+	p.addRoute(http.MethodPost, v1.UpdateReadmeRoute,
 		p.updateReadme, permissionAuth)
 	
 
