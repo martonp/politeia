@@ -1783,6 +1783,90 @@ func (g *gitBackEnd) UpdateVettedMetadata(token []byte, mdAppend []backend.Metad
 	return g._updateVettedMetadata(token, mdAppend, mdOverwrite)
 }
 
+func (g* gitBackEnd) overwriteReadmeFile(content string) error {
+	filename := pijoin(g.unvetted, "README.md")
+
+	err := ioutil.WriteFile(filename, []byte(content), 0664)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateReadme updates the README.md file. First up
+func (g *gitBackEnd) _updateReadme(content string) error {
+	// git checkout master
+	err := g.gitCheckout(g.unvetted, "master")
+	if err != nil {
+		return err
+	}
+
+	// git pull --ff-only --rebase
+	err = g.gitPull(g.unvetted, true)
+	if err != nil {
+		return err
+	}
+
+	const tmpBranch = "updateReadmeTmp"
+
+	// Delete old temporary branch
+	err := g.gitBranchDelete(g.unvetted, tmpBranch)
+	if err != nil {
+		return err
+	}
+
+	// Checkout temporary branch
+	err := g.gitNewBranch(g.unvetted, tmpBranch)
+	if err != nil {
+		return err
+	}
+
+	// Update readme file
+	err = g.overwriteReadmeFile(content)
+	if err != nil {
+		return err
+	}
+
+	// If there are no changes DO NOT update the record and reply with no
+	// changes.
+	if !g.gitHasChanges(g.unvetted) {
+		return backend.ErrNoChanges
+	}
+
+	// Add readme file
+	err = g.gitAdd(g.unvetted, "README.md")
+	if err != nil {
+		return err
+	}
+
+	// Commit change
+	err = g.gitCommit(g.unvetted, "Update README.md")
+	if err != nil {
+		return err
+	}
+
+	// create and rebase PR
+	return g.rebasePR(idTmp)
+
+}
+
+
+// updateReadme updates the README.md file. First up
+func (g *gitBackEnd) UpdateReadme(content string) error {
+	log.Debugf("UpdateReadme", token)
+
+	// Lock filesystem
+	g.Lock()
+	defer g.Unlock()
+	if g.shutdown {
+		return backend.ErrShutdown
+	}
+
+	return g._updateReadme(content)
+}
+
+
 // getRecordLock is the generic implementation of GetUnvetted/GetVetted.  It
 // returns a record record from the provided repo.
 //
@@ -2001,6 +2085,7 @@ func (g *gitBackEnd) GetVetted(token []byte, version string) (*backend.Record, e
 }
 
 // setUnvettedStatus takes various parameters to update a record metadata and
+// status.  Note that this function must beparameters to update a record metadata and
 // status.  Note that this function must be wrapped by a function that delivers
 // the call with the unvetted repo sitting in master.  The idea is that if this
 // function fails we can simply unwind it by calling a git stash.

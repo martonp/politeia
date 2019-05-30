@@ -491,6 +491,37 @@ func (p *politeia) updateVetted(w http.ResponseWriter, r *http.Request) {
 	p.updateRecord(w, r, true)
 }
 
+func (p *politeia) updateReadme(w http.ResponseWriter, r *http.Request) {
+	var t v1.UpdateReadme
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&t); err != nil {
+		p.respondWithUserError(w, v1.ErrorStatusInvalidRequestPayload, nil)
+		return
+	}
+
+	challenge, err := hex.DecodeString(t.Challenge)
+	if err != nil || len(challenge) != v1.ChallengeSize {
+		p.respondWithUserError(w, v1.ErrorStatusInvalidChallenge, nil)
+		return
+	}
+
+	response := p.identity.SignMessage
+
+	reply := v1.UpdateReadmeReply{
+		Response: hex.EncodeToString(response[:]),
+	}
+
+	err = p.backend.UpdateReadme(t.Content)
+	if err != nil {
+		errorCode := time.Now().Unix()
+		p.respondWithServerError(w, errorCode)
+		return
+	}
+
+	util.RespondWithJSON(w, http.StatusOK, reply)
+
+}
+
 func (p *politeia) getUnvetted(w http.ResponseWriter, r *http.Request) {
 	var t v1.GetUnvetted
 	decoder := json.NewDecoder(r.Body)
@@ -1172,6 +1203,9 @@ func _main() error {
 		p.setVettedStatus, permissionAuth)
 	p.addRoute(http.MethodPost, v1.UpdateVettedMetadataRoute,
 		p.updateVettedMetadata, permissionAuth)
+	p.addRoute(http.MethodPost, v1.UpdateReadme,
+		p.updateReadme, permissionAuth)
+	
 
 	// Setup plugins
 	plugins, err := p.backend.GetPlugins()
