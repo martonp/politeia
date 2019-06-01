@@ -1206,7 +1206,6 @@ func _main() error {
 		p.updateVettedMetadata, permissionAuth)
 	p.addRoute(http.MethodPost, v1.UpdateReadmeRoute,
 		p.updateReadme, permissionAuth)
-	
 
 	// Setup plugins
 	plugins, err := p.backend.GetPlugins()

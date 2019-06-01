@@ -1784,7 +1784,7 @@ func (g *gitBackEnd) UpdateVettedMetadata(token []byte, mdAppend []backend.Metad
 }
 
 // Overwrites READNE.md in unvetted folder with new content
-func (g* gitBackEnd) overwriteReadmeFile(content string) error {
+func (g *gitBackEnd) overwriteReadmeFile(content string) error {
 	filename := pijoin(g.unvetted, "README.md")
 
 	err := ioutil.WriteFile(filename, []byte(content), 0664)
@@ -1848,7 +1848,6 @@ func (g *gitBackEnd) _updateReadme(content string) error {
 	return g.rebasePR(tmpBranch)
 }
 
-
 // UpdateReadme updates the README.md file.
 //
 // UpdateReadme satisfies the backend interface.
@@ -1864,7 +1863,6 @@ func (g *gitBackEnd) UpdateReadme(content string) error {
 
 	return g._updateReadme(content)
 }
-
 
 // getRecordLock is the generic implementation of GetUnvetted/GetVetted.  It
 // returns a record record from the provided repo.
