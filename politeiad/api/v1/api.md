@@ -705,7 +705,7 @@ Reply:
 
 ### `Update Readme`
 
-Updated the README.md file located in both the unvetted and vetted repositories.
+Update the README.md file located in both the unvetted and vetted repositories.
 
 This command requires administrator privileges.
 
