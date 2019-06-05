@@ -20,6 +20,7 @@ censorship mechanism.
 - [`Update vetted record`](#update-vetted-record)
 - [`Update vetted metadata`](#update-vetted-metadata)
 - [`Inventory`](#inventory)
+- [`Update readme`](#update-readme)
 
 **Error status codes**
 
