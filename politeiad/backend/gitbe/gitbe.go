@@ -2097,7 +2097,6 @@ func (g *gitBackEnd) GetVetted(token []byte, version string) (*backend.Record, e
 }
 
 // setUnvettedStatus takes various parameters to update a record metadata and
-// status.  Note that this function must beparameters to update a record metadata and
 // status.  Note that this function must be wrapped by a function that delivers
 // the call with the unvetted repo sitting in master.  The idea is that if this
 // function fails we can simply unwind it by calling a git stash.
