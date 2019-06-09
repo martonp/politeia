@@ -117,6 +117,35 @@ func TestUpdateReadme(t *testing.T) {
 		t.Fatalf("The only branch in the vetted repo should be master")
 	}
 
+	// Trying to update readme to the same content returns an error, but does not add
+	// any new branches.
+	err = g.UpdateReadme(updatedReadmeContent)
+	if err == nil {
+		t.Fatal("Updating readme the current content should return an error")
+	}
+
+	branches, err = g.git(g.unvetted, "branch")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if len(branches) != 1 {
+		t.Fatalf("Expected 1 branch in unvetted repo, but it got %v", len(branches))
+	}
+	if !strings.HasSuffix(branches[0], "master") {
+		t.Fatalf("The only branch in the vetted repo should be master")
+	}
+
+	branches, err = g.git(g.vetted, "branch")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if len(branches) != 1 {
+		t.Fatalf("Expected 1 branch in vetted repo, but it got %v", len(branches))
+	}
+	if !strings.HasSuffix(branches[0], "master") {
+		t.Fatalf("The only branch in the vetted repo should be master")
+	}
+
 }
 
 func TestAnchorWithCommits(t *testing.T) {

@@ -1783,7 +1783,9 @@ func (g *gitBackEnd) UpdateVettedMetadata(token []byte, mdAppend []backend.Metad
 	return g._updateVettedMetadata(token, mdAppend, mdOverwrite)
 }
 
-// Overwrites READNE.md in unvetted folder with new content
+// Overwrites README.md in unvetted folder with new content
+//
+// Must be called WITH the lock held.
 func (g *gitBackEnd) overwriteReadmeFile(content string) error {
 	filename := pijoin(g.unvetted, "README.md")
 
@@ -1796,6 +1798,8 @@ func (g *gitBackEnd) overwriteReadmeFile(content string) error {
 }
 
 // Updates the README.md file
+//
+// This function must be called WITH the lock held.
 func (g *gitBackEnd) _updateReadme(content string) error {
 	// git checkout master
 	err := g.gitCheckout(g.unvetted, "master")
@@ -1820,14 +1824,23 @@ func (g *gitBackEnd) _updateReadme(content string) error {
 		return err
 	}
 
+	//If anything goes wrong, checkout master and delete the temp branch
+	defer func() {
+		err := g.gitCheckout(g.unvetted, "master")
+		if err != nil {
+			log.Errorf("could not switch to master: %v", err)
+		}
+
+		_ = g.gitBranchDelete(g.unvetted, tmpBranch)
+	}()
+
 	// Update readme file
 	err = g.overwriteReadmeFile(content)
 	if err != nil {
 		return err
 	}
 
-	// If there are no changes DO NOT update the record and reply with no
-	// changes.
+	// If there are no changes, do not continue
 	if !g.gitHasChanges(g.unvetted) {
 		return backend.ErrNoChanges
 	}
@@ -1849,6 +1862,8 @@ func (g *gitBackEnd) _updateReadme(content string) error {
 }
 
 // UpdateReadme updates the README.md file.
+//
+// This function must be called WITHOUT the lock held.
 //
 // UpdateReadme satisfies the backend interface.
 func (g *gitBackEnd) UpdateReadme(content string) error {
