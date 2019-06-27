@@ -206,6 +206,10 @@ func (l *localdb) UserGetByPubKey(pubKey string) (*user.User, error) {
 	return nil, user.ErrUserNotFound
 }
 
+func (l *localdb) UsersGetByPubKey(pubKeys []string) (map[string]user.User, error) {
+	return nil, nil
+}
+
 // UserGetById returns a user record given its id, if found in the database.
 //
 // UserGetById satisfies the Database interface.
