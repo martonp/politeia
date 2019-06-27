@@ -1603,7 +1603,7 @@ Retrieve proposal and its details.
 | Parameter | Type | Description | Required |
 |-|-|-|-|
 | tokens | [string] | Array of censorship tokens of the proposals you want to retrieve | Yes |
-pol
+
 **Results:**
 
 | | Type | Description |
