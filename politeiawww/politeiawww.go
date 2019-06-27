@@ -280,15 +280,17 @@ func (p *politeiawww) handleProposalDetails(w http.ResponseWriter, r *http.Reque
 	util.RespondWithJSON(w, http.StatusOK, reply)
 }
 
-func (p *politeiawww) handleBatchProposals(w http.ResponseWriter, r *http.Request) {
+func (p *politeiawww) handleBatchProposals(w http.ResponseWriter,
+	r *http.Request) {
 	log.Tracef("handleBatchProposals")
 	var bp www.BatchProposals
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&bp); err != nil {
-		RespondWithError(w, r, 0, "handleBatchProposals: unmarshal", www.UserError{
-			ErrorCode: www.ErrorStatusInvalidInput,
-		})
+		RespondWithError(w, r, 0, "handleBatchProposals: unmarshal",
+			www.UserError{
+				ErrorCode: www.ErrorStatusInvalidInput,
+			})
 		return
 	}
 

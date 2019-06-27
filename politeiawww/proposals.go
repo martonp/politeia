@@ -892,7 +892,9 @@ func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, u
 
 // processBatchProposals fetches a list of proposals from the records
 // cache and returns them
-func (p *politeiawww) processBatchProposals(batchProposals www.BatchProposals, user *user.User) (*www.BatchProposalsReply, error) {
+func (p *politeiawww) processBatchProposals(batchProposals www.BatchProposals,
+	user *user.User) (*www.BatchProposalsReply, error) {
+
 	log.Tracef("processBatchProposals")
 
 	props, err := p.getProps(batchProposals.Tokens)

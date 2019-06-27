@@ -84,9 +84,11 @@ func (p *politeiawww) decredGetComments(token string) ([]decredplugin.Comment, e
 	return gcr.Comments, nil
 }
 
-// decredGetBatchComments sends the decred plugin getcomments command to the cache
-// and returns all of the comments for the passed in proposal token.
-func (p *politeiawww) decredGetBatchComments(tokens []string) (map[string][]decredplugin.Comment, error) {
+// decredGetBatchComments sends the decred plugin getcomments command to the
+// cache and returns all of the comments for the passed in proposal token.
+func (p *politeiawww) decredGetBatchComments(
+	tokens []string) (map[string][]decredplugin.Comment, error) {
+
 	// Setup plugin command
 	gbc := decredplugin.GetBatchComments{
 		Tokens: tokens,
@@ -109,7 +111,8 @@ func (p *politeiawww) decredGetBatchComments(tokens []string) (map[string][]decr
 		return nil, fmt.Errorf("PluginExec: %v", err)
 	}
 
-	gbcr, err := decredplugin.DecodeGetBatchCommentsReply([]byte(reply.Payload))
+	gbcr, err := decredplugin.DecodeGetBatchCommentsReply(
+		[]byte(reply.Payload))
 	if err != nil {
 		return nil, err
 	}
