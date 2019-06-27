@@ -899,12 +899,13 @@ func (p *politeiawww) processBatchProposals(batchProposals www.BatchProposals,
 
 	props, err := p.getProps(batchProposals.Tokens)
 	if err != nil {
-		if err == cache.ErrRecordNotFound {
-			err = www.UserError{
-				ErrorCode: www.ErrorStatusProposalNotFound,
-			}
-		}
 		return nil, err
+	}
+
+	if len(*props) != len(batchProposals.Tokens) {
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusProposalNotFound,
+		}
 	}
 
 	reply := www.BatchProposalsReply{
