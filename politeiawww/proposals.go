@@ -892,8 +892,7 @@ func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, u
 
 // processBatchProposals fetches a list of proposals from the records
 // cache and returns them
-func (p *politeiawww) processBatchProposals(
-	batchProposals www.BatchProposals) (*www.BatchProposalsReply, error) {
+func (p *politeiawww) processBatchProposals(batchProposals www.BatchProposals, user *user.User) (*www.BatchProposalsReply, error) {
 	log.Tracef("processBatchProposals")
 
 	props, err := p.getProps(batchProposals.Tokens)
@@ -908,6 +907,29 @@ func (p *politeiawww) processBatchProposals(
 
 	reply := www.BatchProposalsReply{
 		Proposals: *props,
+	}
+
+	for i := range *props {
+		// Vetted proposals are viewable by everyone. The contents of
+		// an unvetted proposal is only viewable by admins and the
+		// proposal author. Unvetted proposal metadata is viewable by
+		// everyone.
+		if reply.Proposals[i].State == www.PropStateUnvetted {
+			var isAuthor bool
+			var isAdmin bool
+			// This is a public route so a user may not exist
+			if user != nil {
+				isAdmin = user.Admin
+				isAuthor = (reply.Proposals[i].UserId == user.ID.String())
+			}
+
+			// Strip the non-public proposal contents if user is
+			// not the author or an admin
+			if !isAuthor && !isAdmin {
+				reply.Proposals[i].Name = ""
+				reply.Proposals[i].Files = make([]www.File, 0)
+			}
+		}
 	}
 
 	return &reply, nil

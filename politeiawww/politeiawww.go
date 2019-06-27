@@ -292,7 +292,16 @@ func (p *politeiawww) handleBatchProposals(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	reply, err := p.processBatchProposals(bp)
+	user, err := p.getSessionUser(w, r)
+	if err != nil {
+		if err != ErrSessionUUIDNotFound {
+			RespondWithError(w, r, 0,
+				"handleProposalDetails: getSessionUser %v", err)
+			return
+		}
+	}
+
+	reply, err := p.processBatchProposals(bp, user)
 	if err != nil {
 		RespondWithError(w, r, 0,
 			"handleBatchProposals: processBatchProposals %v", err)
