@@ -287,11 +287,9 @@ func (c *cockroachdb) UsersGetByPubKey(pubKeys []string) (map[string]user.User, 
 		return nil, user.ErrShutdown
 	}
 
-	query := `SELECT *
-        FROM users
-        INNER JOIN identities
-          ON users.id = identities.user_id
-		  WHERE identities.public_key IN (?)`
+	query := `SELECT * FROM users INNER JOIN identities
+                ON users.id = identities.user_id
+                WHERE identities.public_key IN (?)`
 
 	rows, err := c.userDB.Raw(query, pubKeys).Rows()
 	defer rows.Close()
@@ -655,7 +653,6 @@ func New(host, network, sslRootCert, sslCert, sslKey, encryptionKey string) (*co
 
 	// Connect to database
 	db, err := gorm.Open("postgres", u.String())
-
 	if err != nil {
 		return nil, fmt.Errorf("connect to database '%v': %v",
 			u.String(), err)

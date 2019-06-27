@@ -376,7 +376,6 @@ type Plugin struct {
 // Database describes the interface used for interacting with the user
 // database.
 type Database interface {
-
 	// Add a new user
 	UserNew(User) error
 
