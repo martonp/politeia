@@ -295,7 +295,7 @@ func (p *politeiawww) handleBatchProposals(w http.ResponseWriter, r *http.Reques
 	reply, err := p.processBatchProposals(bp)
 	if err != nil {
 		RespondWithError(w, r, 0,
-			"handleProposalDetails: processProposalDetails %v", err)
+			"handleBatchProposals: processBatchProposals %v", err)
 		return
 	}
 

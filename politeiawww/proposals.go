@@ -446,25 +446,25 @@ func (p *politeiawww) getProps(tokens []string) (*[]www.ProposalRecord, error) {
 	}
 
 	proposalRecords := make([]www.ProposalRecord, 0, len(tokens))
-
 	for _, record := range records {
 		proposalRecords = append(proposalRecords, convertPropFromCache(record))
 	}
 
-	// Find the number of comments for the proposalqq
-
+	// Find the number of comments each proposal
 	dbc, err := p.decredGetBatchComments(tokens)
 	if err != nil {
 		log.Errorf("getProp: decredGetBatchComments failed "+
 			"for tokens %v", tokens)
 	} else {
 		for i := range proposalRecords {
-			proposalRecords[i].NumComments = uint(len(dbc[proposalRecords[i].CensorshipRecord.Token]))
+			proposalRecords[i].NumComments =
+				uint(len(dbc[proposalRecords[i].CensorshipRecord.Token]))
 		}
 	}
 
-	pubKeysMap := make(map[string]bool)
+	// Get the list of pubkeys of the proposal authors
 	pubKeys := make([]string, 0, 16)
+	pubKeysMap := make(map[string]bool)
 	for _, pr := range proposalRecords {
 		if _, ok := pubKeysMap[pr.PublicKey]; !ok {
 			pubKeysMap[pr.PublicKey] = true
@@ -476,11 +476,13 @@ func (p *politeiawww) getProps(tokens []string) (*[]www.ProposalRecord, error) {
 	users, err := p.db.UsersGetByPubKey(pubKeys)
 	if err != nil {
 		log.Errorf("getProps: UsersGetByPubKey: tokens:%v "+
-			"pubKey:%v err:%v", tokens, pubKeys, err)
+			"pubKeys:%v err:%v", tokens, pubKeys, err)
 	} else {
 		for i := range proposalRecords {
-			proposalRecords[i].UserId = users[proposalRecords[i].PublicKey].ID.String()
-			proposalRecords[i].Username = users[proposalRecords[i].PublicKey].Username
+			proposalRecords[i].UserId =
+				users[proposalRecords[i].PublicKey].ID.String()
+			proposalRecords[i].Username =
+				users[proposalRecords[i].PublicKey].Username
 		}
 	}
 
@@ -888,13 +890,13 @@ func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, u
 	return &reply, nil
 }
 
-// processProposalDetails fetches a specific proposal version from the records
-// cache and returns it.
-func (p *politeiawww) processBatchProposals(batchProposals www.BatchProposals) (*www.BatchProposalsReply, error) {
+// processBatchProposals fetches a list of proposals from the records
+// cache and returns them
+func (p *politeiawww) processBatchProposals(
+	batchProposals www.BatchProposals) (*www.BatchProposalsReply, error) {
 	log.Tracef("processBatchProposals")
 
 	props, err := p.getProps(batchProposals.Tokens)
-
 	if err != nil {
 		if err == cache.ErrRecordNotFound {
 			err = www.UserError{

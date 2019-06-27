@@ -81,11 +81,21 @@ func (c *testcache) Record(token string) (*cache.Record, error) {
 }
 
 // Record returns the most recent version of the record.
-func (c *testcache) Records(token []string) ([]cache.Record, error) {
+func (c *testcache) Records(tokens []string) ([]cache.Record, error) {
 	c.RLock()
 	defer c.RUnlock()
 
-	return nil, nil
+	records := make([]cache.Record, 0, len(tokens))
+
+	for _, token := range tokens {
+		r, err := c.record(token)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, *r)
+	}
+
+	return records, nil
 }
 
 // recordVersion retreives a specific version of a record from the memory

@@ -655,7 +655,6 @@ func New(host, network, sslRootCert, sslCert, sslKey, encryptionKey string) (*co
 
 	// Connect to database
 	db, err := gorm.Open("postgres", u.String())
-	db.LogMode(true)
 
 	if err != nil {
 		return nil, fmt.Errorf("connect to database '%v': %v",
@@ -679,7 +678,7 @@ func New(host, network, sslRootCert, sslCert, sslKey, encryptionKey string) (*co
 
 	// Disable gorm logging. This prevents duplicate errors
 	// from being printed since we handle errors manually.
-	//c.userDB.LogMode(false)
+	c.userDB.LogMode(false)
 
 	// Disable automatic table name pluralization.
 	// We set table names manually.

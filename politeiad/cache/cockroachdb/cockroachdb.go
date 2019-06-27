@@ -834,7 +834,6 @@ func New(user, host, net, rootCert, cert, key string) (*cockroachdb, error) {
 	qs := buildQueryString(u.User.String(), rootCert, cert, key)
 	addr := u.String() + "?" + qs
 	db, err := gorm.Open("postgres", addr)
-	db.LogMode(true)
 
 	if err != nil {
 		return nil, fmt.Errorf("connect to database '%v': %v", addr, err)
@@ -848,7 +847,7 @@ func New(user, host, net, rootCert, cert, key string) (*cockroachdb, error) {
 
 	// Disable gorm logging. This prevents duplicate errors from
 	// being printed since we handle errors manually.
-	//c.recordsdb.LogMode(false)
+	c.recordsdb.LogMode(false)
 
 	// Disable automatic table name pluralization. We set table
 	// names manually.
