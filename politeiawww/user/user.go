@@ -376,6 +376,7 @@ type Plugin struct {
 // Database describes the interface used for interacting with the user
 // database.
 type Database interface {
+
 	// Add a new user
 	UserNew(User) error
 
@@ -390,6 +391,9 @@ type Database interface {
 
 	// Return user record given a public key
 	UserGetByPubKey(string) (*User, error)
+
+	// Return a map of public key to user record
+	UsersGetByPubKey(pubKeys []string) (map[string]User, error)
 
 	// Iterate over all users
 	AllUsers(callbackFn func(u *User)) error
