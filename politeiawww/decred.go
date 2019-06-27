@@ -84,8 +84,8 @@ func (p *politeiawww) decredGetComments(token string) ([]decredplugin.Comment, e
 	return gcr.Comments, nil
 }
 
-// decredGetBatchComments sends the decred plugin getcomments command to the
-// cache and returns all of the comments for the passed in proposal token.
+// decredGetBatchComments sends the decred plugin GetBachComments command to the
+// cache and returns all of the comments for each of the tokens passed in.
 func (p *politeiawww) decredGetBatchComments(
 	tokens []string) (map[string][]decredplugin.Comment, error) {
 

@@ -834,7 +834,6 @@ func New(user, host, net, rootCert, cert, key string) (*cockroachdb, error) {
 	qs := buildQueryString(u.User.String(), rootCert, cert, key)
 	addr := u.String() + "?" + qs
 	db, err := gorm.Open("postgres", addr)
-
 	if err != nil {
 		return nil, fmt.Errorf("connect to database '%v': %v", addr, err)
 	}

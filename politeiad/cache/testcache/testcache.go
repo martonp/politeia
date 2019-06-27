@@ -80,7 +80,7 @@ func (c *testcache) Record(token string) (*cache.Record, error) {
 	return c.record(token)
 }
 
-// Record returns the most recent version of the record.
+// Records returns the most recent version of a set of records.
 func (c *testcache) Records(tokens []string) ([]cache.Record, error) {
 	c.RLock()
 	defer c.RUnlock()
