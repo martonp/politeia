@@ -30,6 +30,7 @@ import (
 	www "github.com/decred/politeia/politeiawww/api/www/v1"
 	cmsdb "github.com/decred/politeia/politeiawww/cmsdatabase/cockroachdb"
 	"github.com/decred/politeia/politeiawww/user"
+
 	userdb "github.com/decred/politeia/politeiawww/user/cockroachdb"
 	"github.com/decred/politeia/politeiawww/user/localdb"
 	"github.com/decred/politeia/util"
@@ -504,10 +505,12 @@ func _main() error {
 		p.setPoliteiaWWWRoutes()
 		// XXX setup user routes
 		p.setUserWWWRoutes()
+		p.UpdateWWWReadme()
 	case cmsWWWMode:
 		p.setCMSWWWRoutes()
 		// XXX setup user routes
 		p.setCMSUserWWWRoutes()
+		p.UpdateCMSReadme()
 
 		// Setup cmsdb
 		cmsdb.UseLogger(cockroachdbLog)
