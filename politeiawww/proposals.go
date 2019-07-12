@@ -472,6 +472,20 @@ func (p *politeiawww) getProps(tokens []string) (*[]www.ProposalRecord, error) {
 		}
 	}
 
+	bb, err := p.getBestBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get Vote summaries
+	voteSummaries, err := p.voteSummaries(tokens, bb)
+	if err != nil {
+		return nil, err
+	}
+	for _, pr := range proposalRecords {
+		pr.VoteSummary = voteSummaries[pr.CensorshipRecord.Token]
+	}
+
 	// Fill in proposal author info
 	users, err := p.db.UsersGetByPubKey(pubKeys)
 	if err != nil {
@@ -1514,6 +1528,39 @@ func (p *politeiawww) setVoteStatusReply(v www.VoteStatusReply) {
 	defer p.Unlock()
 
 	p.voteStatuses[v.Token] = v
+}
+
+func (p *politeiawww) voteSummaries(tokens []string, bestBlock uint64) (map[string]www.VoteSummary, error) {
+
+	r, err := p.decredBatchVoteSummary(tokens)
+	if err != nil {
+		return nil, err
+	}
+
+	voteSummaries := make(map[string]www.VoteSummary)
+
+	for token, summary := range r.Summaries {
+		results := convertVoteOptionResultsFromDecred(summary.Results)
+		var total uint64
+		for _, v := range results {
+			total += v.VotesReceived
+		}
+
+		vs := www.VoteSummary{
+			Status:             voteStatusFromVoteSummary(summary, bestBlock),
+			TotalVotes:         total,
+			OptionsResult:      results,
+			EndHeight:          summary.EndHeight,
+			BestBlock:          strconv.Itoa(int(bestBlock)),
+			NumOfEligibleVotes: summary.EligibleTicketCount,
+			QuorumPercentage:   summary.QuorumPercentage,
+			PassPercentage:     summary.PassPercentage,
+		}
+
+		voteSummaries[token] = vs
+	}
+
+	return voteSummaries, nil
 }
 
 func (p *politeiawww) voteStatusReply(token string, bestBlock uint64) (*www.VoteStatusReply, error) {

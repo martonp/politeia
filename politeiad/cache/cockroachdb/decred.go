@@ -884,6 +884,122 @@ func (d *decred) cmdTokenInventory(payload string) (string, error) {
 	return string(reply), nil
 }
 
+func (d *decred) cmdBatchVoteSummary(payload string) (string, error) {
+	log.Tracef("cmdBatchVoteSummary")
+
+	bvs, err := decredplugin.DecodeBatchVoteSummary([]byte(payload))
+	if err != nil {
+		return "", err
+	}
+
+	// This query gets the latest version of each record
+	query := `SELECT a.* FROM records a
+	LEFT OUTER JOIN records b
+		ON a.token = b.token AND a.version < b.version
+	WHERE b.token IS NULL AND a.token IN (?)`
+
+	rows, err := d.recordsdb.Raw(query, bvs.Tokens).Rows()
+
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	recordsMap := make(map[string]Record)
+	for rows.Next() {
+		var r Record
+		err := d.recordsdb.ScanRows(rows, &r)
+		if err != nil {
+			return "", err
+		}
+		recordsMap[r.Token] = r
+	}
+
+	keys := make([]string, len(recordsMap))
+	for token, record := range recordsMap {
+		keys = append(keys, token+strconv.FormatUint(record.Version, 10))
+	}
+
+	avs := make([]AuthorizeVote, len(keys))
+	avMap := make(map[string]AuthorizeVote)
+	err = d.recordsdb.
+		Where("key IN (?)", keys).
+		Find(&avs).
+		Error
+	if err != nil {
+		return "", fmt.Errorf("lookup authorize vote: %v", err)
+	}
+	for _, av := range avs {
+		avMap[av.Token] = av
+	}
+
+	svs := make([]StartVote, len(bvs.Tokens))
+	svMap := make(map[string]StartVote)
+	err = d.recordsdb.
+		Where("token IN (?)", bvs.Tokens).
+		Preload("Options").
+		Find(&svs).
+		Error
+	if err != nil {
+		return "", fmt.Errorf("lookup start vote: %v", err)
+	}
+	for _, sv := range svs {
+		svMap[sv.Token] = sv
+	}
+
+	vrs := make([]VoteResults, len(bvs.Tokens))
+	vrMap := make(map[string]VoteResults)
+	err = d.recordsdb.
+		Where("token IN (?)", bvs.Tokens).
+		Preload("Results").
+		Preload("Results.Option").
+		Find(&vrs).
+		Error
+	if err != nil {
+		return "", fmt.Errorf("lookup vote results: %v", err)
+	}
+	for _, vr := range vrs {
+		vrMap[vr.Token] = vr
+	}
+
+	summariesMap := make(map[string]decredplugin.VoteSummaryReply)
+	for _, token := range bvs.Tokens {
+
+		av := avMap[token]
+		sv := svMap[token]
+		vr := vrMap[token]
+
+		var endHeight string
+		if sv.EndHeight != 0 {
+			endHeight = strconv.FormatUint(sv.EndHeight, 10)
+		}
+
+		results := make([]decredplugin.VoteOptionResult, 0, 16)
+		vor := convertVoteOptionResultsToDecred(vr.Results)
+		results = append(results, vor...)
+
+		vsr := decredplugin.VoteSummaryReply{
+			Authorized:          (av.Action == decredplugin.AuthVoteActionAuthorize),
+			EndHeight:           endHeight,
+			EligibleTicketCount: sv.EligibleTicketCount,
+			QuorumPercentage:    sv.QuorumPercentage,
+			PassPercentage:      sv.PassPercentage,
+			Results:             results,
+		}
+		summariesMap[token] = vsr
+	}
+
+	bvsr := decredplugin.BatchVoteSummaryReply{
+		Summaries: summariesMap,
+	}
+	reply, err := decredplugin.EncodeBatchVoteSummaryReply(bvsr)
+	if err != nil {
+		return "", err
+	}
+
+	return string(reply), nil
+}
+
 func (d *decred) cmdVoteSummary(payload string) (string, error) {
 	log.Tracef("cmdVoteSummary")
 
@@ -900,6 +1016,7 @@ func (d *decred) cmdVoteSummary(payload string) (string, error) {
 		Limit(1).
 		Find(&r).
 		Error
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			err = cache.ErrRecordNotFound
@@ -1054,6 +1171,8 @@ func (d *decred) Exec(cmd, cmdPayload, replyPayload string) (string, error) {
 		return d.cmdTokenInventory(cmdPayload)
 	case decredplugin.CmdVoteSummary:
 		return d.cmdVoteSummary(cmdPayload)
+	case decredplugin.CmdBatchVoteSummary:
+		return d.cmdBatchVoteSummary(cmdPayload)
 	}
 
 	return "", cache.ErrInvalidPluginCmd
