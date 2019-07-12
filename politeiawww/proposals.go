@@ -482,8 +482,9 @@ func (p *politeiawww) getProps(tokens []string) (*[]www.ProposalRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, pr := range proposalRecords {
-		pr.VoteSummary = voteSummaries[pr.CensorshipRecord.Token]
+	for i := range proposalRecords {
+		proposalRecords[i].VoteSummary =
+			voteSummaries[proposalRecords[i].CensorshipRecord.Token]
 	}
 
 	// Fill in proposal author info
