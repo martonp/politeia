@@ -884,6 +884,79 @@ func (d *decred) cmdTokenInventory(payload string) (string, error) {
 	return string(reply), nil
 }
 
+func (d *decred) getAuthorizeVotesForRecords(recordsMap map[string]Record) (map[string]AuthorizeVote, error) {
+	keys := make([]string, 0, len(recordsMap))
+	for token, record := range recordsMap {
+		keys = append(keys, token+strconv.FormatUint(record.Version, 10))
+	}
+
+	avs := make([]AuthorizeVote, 0, len(keys))
+	avMap := make(map[string]AuthorizeVote)
+	err := d.recordsdb.
+		Where("key IN (?)", keys).
+		Find(&avs).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	for _, av := range avs {
+		avMap[av.Token] = av
+	}
+
+	return avMap, nil
+}
+
+func (d *decred) getStartVotesForAuthorizeVotes(avMap map[string]AuthorizeVote) (map[string]StartVote, error) {
+	tokens := make([]string, 0, len(avMap))
+	for token := range avMap {
+		tokens = append(tokens, token)
+	}
+
+	svs := make([]StartVote, 0, len(tokens))
+	svMap := make(map[string]StartVote)
+
+	err := d.recordsdb.
+		Where("token IN (?)", tokens).
+		Preload("Options").
+		Find(&svs).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	for _, sv := range svs {
+		svMap[sv.Token] = sv
+	}
+
+	return svMap, nil
+}
+
+func (d *decred) getVoteResultsForStartVotes(svMap map[string]StartVote) (map[string]VoteResults, error) {
+	tokens := make([]string, 0, len(svMap))
+	for token := range svMap {
+		tokens = append(tokens, token)
+	}
+
+	vrs := make([]VoteResults, 0, len(tokens))
+	vrMap := make(map[string]VoteResults)
+	err := d.recordsdb.
+		Where("token IN (?)", tokens).
+		Preload("Results").
+		Preload("Results.Option").
+		Find(&vrs).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	for _, vr := range vrs {
+		vrMap[vr.Token] = vr
+	}
+
+	return vrMap, nil
+}
+
 func (d *decred) cmdBatchVoteSummary(payload string) (string, error) {
 	log.Tracef("cmdBatchVoteSummary")
 
@@ -915,51 +988,19 @@ func (d *decred) cmdBatchVoteSummary(payload string) (string, error) {
 		recordsMap[r.Token] = r
 	}
 
-	keys := make([]string, len(recordsMap))
-	for token, record := range recordsMap {
-		keys = append(keys, token+strconv.FormatUint(record.Version, 10))
-	}
-
-	avs := make([]AuthorizeVote, len(keys))
-	avMap := make(map[string]AuthorizeVote)
-	err = d.recordsdb.
-		Where("key IN (?)", keys).
-		Find(&avs).
-		Error
+	avMap, err := d.getAuthorizeVotesForRecords(recordsMap)
 	if err != nil {
-		return "", fmt.Errorf("lookup authorize vote: %v", err)
-	}
-	for _, av := range avs {
-		avMap[av.Token] = av
+		return "", fmt.Errorf("lookup authorize votes: %v", err)
 	}
 
-	svs := make([]StartVote, len(bvs.Tokens))
-	svMap := make(map[string]StartVote)
-	err = d.recordsdb.
-		Where("token IN (?)", bvs.Tokens).
-		Preload("Options").
-		Find(&svs).
-		Error
+	svMap, err := d.getStartVotesForAuthorizeVotes(avMap)
 	if err != nil {
 		return "", fmt.Errorf("lookup start vote: %v", err)
 	}
-	for _, sv := range svs {
-		svMap[sv.Token] = sv
-	}
 
-	vrs := make([]VoteResults, len(bvs.Tokens))
-	vrMap := make(map[string]VoteResults)
-	err = d.recordsdb.
-		Where("token IN (?)", bvs.Tokens).
-		Preload("Results").
-		Preload("Results.Option").
-		Find(&vrs).
-		Error
+	vrMap, err := d.getVoteResultsForStartVotes(svMap)
 	if err != nil {
 		return "", fmt.Errorf("lookup vote results: %v", err)
-	}
-	for _, vr := range vrs {
-		vrMap[vr.Token] = vr
 	}
 
 	summariesMap := make(map[string]decredplugin.VoteSummaryReply)
