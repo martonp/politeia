@@ -326,23 +326,13 @@ func TestHandleLogin(t *testing.T) {
 	p, cleanup := newTestPoliteiawww(t)
 	defer cleanup()
 
-	// MinimumLoginWaitTime is a global variable used to
-	// prevent timing attacks. We're not testing it here
-	// so we temporarily zero it out to make the tests
-	// run faster.
-	m := MinimumLoginWaitTime
-	MinimumLoginWaitTime = 0
-	defer func() {
-		MinimumLoginWaitTime = m
-	}()
-
 	// Create a user to test against. newUser() sets the
 	// password to be the same as the username.
 	u, _ := newUser(t, p, true, false)
 	password := u.Username
 	expectedReply, err := p.createLoginReply(u, u.LastLoginTime)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	expectedReply.SessionMaxAge = sessionMaxAge
 
@@ -354,22 +344,34 @@ func TestHandleLogin(t *testing.T) {
 		wantReply  *www.LoginReply
 		wantError  error
 	}{
-		{"invalid request body", "", http.StatusBadRequest, nil,
+		{
+			"invalid request body",
+			"",
+			http.StatusBadRequest,
+			nil,
 			www.UserError{
 				ErrorCode: www.ErrorStatusInvalidInput,
-			}},
-
-		{"processLogin error", www.Login{}, http.StatusUnauthorized, nil,
+			},
+		},
+		{
+			"processLogin error",
+			www.Login{},
+			http.StatusUnauthorized,
+			nil,
 			www.UserError{
-				ErrorCode: www.ErrorStatusInvalidEmailOrPassword,
-			}},
-
-		{"success",
+				ErrorCode: www.ErrorStatusUserNotFound,
+			},
+		},
+		{
+			"success",
 			www.Login{
-				Email:    u.Email,
+				Username: u.Username,
 				Password: password,
 			},
-			http.StatusOK, expectedReply, nil},
+			http.StatusOK,
+			expectedReply,
+			nil,
+		},
 	}
 
 	// Run tests
@@ -463,7 +465,7 @@ func TestHandleChangePassword(t *testing.T) {
 			},
 			http.StatusBadRequest,
 			www.UserError{
-				ErrorCode: www.ErrorStatusInvalidEmailOrPassword,
+				ErrorCode: www.ErrorStatusInvalidPassword,
 			}},
 
 		{"success",
@@ -523,53 +525,51 @@ func TestHandleResetPassword(t *testing.T) {
 	p, cleanup := newTestPoliteiawww(t)
 	defer cleanup()
 
-	// Create a user that has already been assigned a reset
-	// password verification token.
+	// Create a test user
 	usr, _ := newUser(t, p, true, false)
-	newPass := usr.Username + "aaa"
-	token, expiry, err := newVerificationTokenAndExpiry()
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	usr.ResetPasswordVerificationToken = token
-	usr.ResetPasswordVerificationExpiry = expiry
-	err = p.db.UserUpdate(*usr)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+
+	// Remove the min wait time requirement so that the tests
+	// aren't slow.
+	wt := resetPasswordMinWaitTime
+	resetPasswordMinWaitTime = 0 * time.Millisecond
+	defer func() {
+		resetPasswordMinWaitTime = wt
+	}()
 
 	// Setup tests
 	var tests = []struct {
 		name       string
 		reqBody    interface{}
-		wantStatus int
+		wantStatus int // HTTP status code
 		wantError  error
 	}{
-		{"invalid request body", "", http.StatusBadRequest,
+		{
+			"invalid request body",
+			"",
+			http.StatusBadRequest,
 			www.UserError{
 				ErrorCode: www.ErrorStatusInvalidInput,
-			}},
-
-		{"user not found", www.ResetPassword{}, http.StatusOK, nil},
-
-		{"processResetPassword error",
+			},
+		},
+		{
+			"processResetPassword error",
 			www.ResetPassword{
-				Email:             usr.Email,
-				VerificationToken: hex.EncodeToString(token),
-				NewPassword:       "x",
+				Username: "wrongusername",
 			},
 			http.StatusBadRequest,
 			www.UserError{
-				ErrorCode: www.ErrorStatusMalformedPassword,
-			}},
-
-		{"success",
-			www.ResetPassword{
-				Email:             usr.Email,
-				VerificationToken: hex.EncodeToString(token),
-				NewPassword:       newPass,
+				ErrorCode: www.ErrorStatusUserNotFound,
 			},
-			http.StatusOK, nil},
+		},
+		{
+			"success",
+			www.ResetPassword{
+				Username: usr.Username,
+				Email:    usr.Email,
+			},
+			http.StatusOK,
+			nil,
+		},
 	}
 
 	// Run tests
@@ -606,6 +606,99 @@ func TestHandleResetPassword(t *testing.T) {
 			if got != want {
 				t.Errorf("got error %v, want %v",
 					got, want)
+			}
+		})
+	}
+}
+
+func TestHandleVerifyResetPassword(t *testing.T) {
+	p, cleanup := newTestPoliteiawww(t)
+	defer cleanup()
+
+	// Create a user that has already been assigned a reset
+	// password verification token.
+	usr, _ := newUser(t, p, true, false)
+	token, expiry, err := newVerificationTokenAndExpiry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	usr.ResetPasswordVerificationToken = token
+	usr.ResetPasswordVerificationExpiry = expiry
+	err = p.db.UserUpdate(*usr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verificationToken := hex.EncodeToString(token)
+
+	// Setup tests
+	var tests = []struct {
+		name       string
+		reqBody    interface{}
+		wantStatus int // HTTP status code
+		wantErr    error
+	}{
+		{
+			"invalid request body",
+			"",
+			http.StatusBadRequest,
+			www.UserError{
+				ErrorCode: www.ErrorStatusInvalidInput,
+			},
+		},
+		{
+			"processVerifyResetPassword error",
+			www.VerifyResetPassword{
+				Username: "wrongusername",
+			},
+			http.StatusBadRequest,
+			www.UserError{
+				ErrorCode: www.ErrorStatusUserNotFound,
+			},
+		},
+		{
+			"success",
+			www.VerifyResetPassword{
+				Username:          usr.Username,
+				VerificationToken: verificationToken,
+				NewPassword:       "helloworld",
+			},
+			http.StatusOK,
+			nil,
+		},
+	}
+
+	// Run tests
+	for _, v := range tests {
+		t.Run(v.name, func(t *testing.T) {
+			// Setup request
+			r := newPostReq(t, www.RouteVerifyResetPassword, v.reqBody)
+			w := httptest.NewRecorder()
+
+			// Run test case
+			p.handleVerifyResetPassword(w, r)
+			res := w.Result()
+			body, _ := ioutil.ReadAll(res.Body)
+
+			// Check status code
+			if res.StatusCode != v.wantStatus {
+				t.Errorf("got status code %v, want %v",
+					res.StatusCode, v.wantStatus)
+			}
+			if res.StatusCode == http.StatusOK {
+				// Test case passes; next case
+				return
+			}
+
+			// Check user error
+			var ue www.UserError
+			err := json.Unmarshal(body, &ue)
+			if err != nil {
+				t.Errorf("unmarshal UserError: %v", err)
+			}
+			got := errToStr(ue)
+			want := errToStr(v.wantErr)
+			if got != want {
+				t.Errorf("got error %v, want %v", got, want)
 			}
 		})
 	}

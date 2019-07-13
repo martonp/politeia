@@ -32,6 +32,7 @@ const (
 	RouteChangeUsername           = "/user/username/change"
 	RouteChangePassword           = "/user/password/change"
 	RouteResetPassword            = "/user/password/reset"
+	RouteVerifyResetPassword      = "/user/password/reset/verify"
 	RouteUserProposals            = "/user/proposals"
 	RouteUserProposalCredits      = "/user/proposals/credits"
 	RouteUserCommentsLikes        = "/user/proposals/{token:[A-z0-9]{64}}/commentslikes"
@@ -118,7 +119,7 @@ const (
 
 	// Error status codes
 	ErrorStatusInvalid                     ErrorStatusT = 0
-	ErrorStatusInvalidEmailOrPassword      ErrorStatusT = 1
+	ErrorStatusInvalidPassword             ErrorStatusT = 1
 	ErrorStatusMalformedEmail              ErrorStatusT = 2
 	ErrorStatusVerificationTokenInvalid    ErrorStatusT = 3
 	ErrorStatusVerificationTokenExpired    ErrorStatusT = 4
@@ -177,7 +178,6 @@ const (
 	ErrorStatusInvalidLikeCommentAction    ErrorStatusT = 57
 	ErrorStatusInvalidCensorshipToken      ErrorStatusT = 58
 	ErrorStatusEmailAlreadyVerified        ErrorStatusT = 59
-	ErrorStatusInvalidPassword             ErrorStatusT = 85
 	ErrorStatusNoProposalChanges           ErrorStatusT = 88
 	ErrorStatusMaxProposalsExceededPolicy  ErrorStatusT = 89
 
@@ -258,7 +258,7 @@ var (
 	// ErrorStatus converts error status codes to human readable text.
 	ErrorStatus = map[ErrorStatusT]string{
 		ErrorStatusInvalid:                     "invalid error status",
-		ErrorStatusInvalidEmailOrPassword:      "invalid email or password",
+		ErrorStatusInvalidPassword:             "invalid password",
 		ErrorStatusMalformedEmail:              "malformed email",
 		ErrorStatusVerificationTokenInvalid:    "invalid verification token",
 		ErrorStatusVerificationTokenExpired:    "expired verification token",
@@ -317,7 +317,6 @@ var (
 		ErrorStatusInvalidLikeCommentAction:    "invalid like comment action",
 		ErrorStatusInvalidCensorshipToken:      "invalid proposal censorship token",
 		ErrorStatusEmailAlreadyVerified:        "email address is already verified",
-		ErrorStatusInvalidPassword:             "invalid password",
 		ErrorStatusNoProposalChanges:           "no changes found in proposal",
 	}
 
@@ -560,19 +559,33 @@ type ChangePassword struct {
 // is logged in.
 type ChangePasswordReply struct{}
 
-// ResetPassword is used to perform a password change when the
-// user is not logged in.
+// ResetPassword is used to perform a password change when the user is not
+// logged in. If the username and email address match the user record in the
+// database then a reset password verification token will be email to the user.
 type ResetPassword struct {
-	Email             string `json:"email"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
+// ResetPasswordReply is used to reply to the ResetPassword command. The
+// verification token will only be present if the email server has been
+// disabled.
+type ResetPasswordReply struct {
+	VerificationToken string `json:"verificationtoken"`
+}
+
+// VerifyResetPassword is used to verify the verification token sent to a user
+// in the ResestPassword command and will update the user's password with the
+// provided NewPassword if everything matches.
+type VerifyResetPassword struct {
+	Username          string `json:"username"`
 	VerificationToken string `json:"verificationtoken"`
 	NewPassword       string `json:"newpassword"`
 }
 
-// ResetPasswordReply is used to reply to the ResetPassword command
-// with an error if the command is unsuccessful.
-type ResetPasswordReply struct {
-	VerificationToken string `json:"verificationtoken"`
-}
+// VerifyResetPasswordReply is used to reply to the VerifyResetPassword
+// command.
+type VerifyResetPasswordReply struct{}
 
 // UserProposalCredits is used to request a list of all the user's unspent
 // proposal credits and a list of all of the user's spent proposal credits.
@@ -659,7 +672,7 @@ type AbridgedUser struct {
 // Login attempts to login the user.  Note that by necessity the password
 // travels in the clear.
 type Login struct {
-	Email    string `json:"email"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 }
 

@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/golangcrypto/bcrypt"
@@ -38,16 +39,18 @@ var (
 	validUsername = regexp.MustCompile(createUsernameRegex())
 	validEmail    = regexp.MustCompile(emailRegex)
 
-	// MinimumLoginWaitTime is the minimum amount of time to wait before the
-	// server sends a response to the client for the login route. This is done
-	// to prevent an attacker from executing a timing attack to determine whether
-	// the ErrorStatusInvalidEmailOrPassword response is specific to a bad email
-	// or bad password.
-	MinimumLoginWaitTime = 500 * time.Millisecond
+	// resetPasswordMinWaitTime is the minimum amount of time to wait
+	// before sending a response back to the client for the reset
+	// password route. This is done to prevent an attacker from being
+	// able to execute a timing attack to determine if the provided
+	// email address is the user's valid email address.
+	resetPasswordMinWaitTime = 500 * time.Millisecond
 )
 
-type loginReplyWithError struct {
-	reply *www.LoginReply
+// resetPassword is used to pass the results of the reset password command
+// between go routines.
+type resetPasswordResult struct {
+	reply www.ResetPasswordReply
 	err   error
 }
 
@@ -687,215 +690,6 @@ func (p *politeiawww) processUserCommentsLikes(user *user.User, token string) (*
 	}, nil
 }
 
-// login attempts to login a a user.
-func (p *politeiawww) login(l *www.Login) loginReplyWithError {
-	// Get user from db.
-	u, err := p.userByEmail(l.Email)
-	if err != nil {
-		if err == user.ErrUserNotFound {
-			log.Debugf("Login failure for %v: user not found in database",
-				l.Email)
-			return loginReplyWithError{
-				reply: nil,
-				err: www.UserError{
-					ErrorCode: www.ErrorStatusInvalidEmailOrPassword,
-				},
-			}
-		}
-
-		return loginReplyWithError{
-			reply: nil,
-			err:   err,
-		}
-	}
-
-	// Check the user's password.
-	err = bcrypt.CompareHashAndPassword(u.HashedPassword,
-		[]byte(l.Password))
-	if err != nil {
-		if !userIsLocked(u.FailedLoginAttempts) {
-			u.FailedLoginAttempts++
-			err := p.db.UserUpdate(*u)
-			if err != nil {
-				return loginReplyWithError{
-					reply: nil,
-					err:   err,
-				}
-			}
-
-			// Check if the user is locked again so we can send an
-			// email.
-			if userIsLocked(u.FailedLoginAttempts) && !p.test {
-				// This is conditional on the email server
-				// being setup.
-				err := p.emailUserLocked(u.Email)
-				if err != nil {
-					return loginReplyWithError{
-						reply: nil,
-						err:   err,
-					}
-				}
-			}
-		}
-
-		log.Debugf("Login failure for %v: incorrect password",
-			l.Email)
-		return loginReplyWithError{
-			reply: nil,
-			err: www.UserError{
-				ErrorCode: www.ErrorStatusInvalidEmailOrPassword,
-			},
-		}
-	}
-
-	// Check that the user is verified.
-	if u.NewUserVerificationToken != nil {
-		log.Debugf("Login failure for %v: user not yet verified",
-			l.Email)
-		return loginReplyWithError{
-			reply: nil,
-			err: www.UserError{
-				ErrorCode: www.ErrorStatusEmailNotVerified,
-			},
-		}
-	}
-
-	// Check if the user account is deactivated.
-	if u.Deactivated {
-		log.Debugf("Login failure for %v: user deactivated", l.Email)
-		return loginReplyWithError{
-			reply: nil,
-			err: www.UserError{
-				ErrorCode: www.ErrorStatusUserDeactivated,
-			},
-		}
-	}
-
-	// Check if user is locked due to too many login attempts
-	if userIsLocked(u.FailedLoginAttempts) {
-		log.Debugf("Login failure for %v: user locked",
-			l.Email)
-		return loginReplyWithError{
-			reply: nil,
-			err: www.UserError{
-				ErrorCode: www.ErrorStatusUserLocked,
-			},
-		}
-	}
-
-	lastLoginTime := u.LastLoginTime
-	u.FailedLoginAttempts = 0
-	u.LastLoginTime = time.Now().Unix()
-	err = p.db.UserUpdate(*u)
-	if err != nil {
-		return loginReplyWithError{
-			reply: nil,
-			err:   err,
-		}
-	}
-	reply, err := p.createLoginReply(u, lastLoginTime)
-	return loginReplyWithError{
-		reply: reply,
-		err:   err,
-	}
-}
-
-// emailResetPassword handles the reset password command.
-func (p *politeiawww) emailResetPassword(u *user.User, rp www.ResetPassword, rpr *www.ResetPasswordReply) error {
-	if u.ResetPasswordVerificationToken != nil {
-		if u.ResetPasswordVerificationExpiry > time.Now().Unix() {
-			// The verification token is present and hasn't
-			// expired, so do nothing.
-			return nil
-		}
-	}
-
-	// The verification token isn't present or is present but expired.
-
-	// Generate a new verification token and expiry.
-	token, expiry, err := newVerificationTokenAndExpiry()
-	if err != nil {
-		return err
-	}
-
-	// Add the updated user information to the db.
-	u.ResetPasswordVerificationToken = token
-	u.ResetPasswordVerificationExpiry = expiry
-	err = p.db.UserUpdate(*u)
-	if err != nil {
-		return err
-	}
-
-	if !p.test {
-		// This is conditional on the email server being setup.
-		err := p.emailResetPasswordVerificationLink(rp.Email,
-			hex.EncodeToString(token))
-		if err != nil {
-			return err
-		}
-	}
-
-	// Only set the token if email verification is disabled.
-	if p.smtp.disabled {
-		rpr.VerificationToken = hex.EncodeToString(token)
-	}
-
-	return nil
-}
-
-// verifyResetPassword verifies the reset password command.
-func (p *politeiawww) verifyResetPassword(u *user.User, rp www.ResetPassword, rpr *www.ResetPasswordReply) error {
-	// Decode the verification token.
-	token, err := hex.DecodeString(rp.VerificationToken)
-	if err != nil {
-		log.Debugf("VerifyResetPassword failure for %v: verification "+
-			"token could not be decoded: %v", rp.Email, err)
-		return www.UserError{
-			ErrorCode: www.ErrorStatusVerificationTokenInvalid,
-		}
-	}
-
-	// Check that the verification token matches.
-	if !bytes.Equal(token, u.ResetPasswordVerificationToken) {
-		log.Debugf("VerifyResetPassword failure for %v: verification "+
-			"token doesn't match, expected %v", rp.Email,
-			u.ResetPasswordVerificationToken)
-		return www.UserError{
-			ErrorCode: www.ErrorStatusVerificationTokenInvalid,
-		}
-	}
-
-	// Check that the token hasn't expired.
-	if u.ResetPasswordVerificationExpiry < time.Now().Unix() {
-		log.Debugf("VerifyResetPassword failure for %v: verification "+
-			"token is expired", rp.Email)
-		return www.UserError{
-			ErrorCode: www.ErrorStatusVerificationTokenExpired,
-		}
-	}
-
-	// Validate the new password.
-	err = validatePassword(rp.NewPassword)
-	if err != nil {
-		return err
-	}
-
-	// Hash the new password.
-	hashedPassword, err := p.hashPassword(rp.NewPassword)
-	if err != nil {
-		return err
-	}
-
-	// Clear out the verification token fields, set the new password in the
-	// db, and unlock account
-	u.ResetPasswordVerificationToken = nil
-	u.ResetPasswordVerificationExpiry = 0
-	u.HashedPassword = hashedPassword
-	u.FailedLoginAttempts = 0
-
-	return p.db.UserUpdate(*u)
-}
-
 // createLoginReply creates a login reply.
 func (p *politeiawww) createLoginReply(u *user.User, lastLoginTime int64) (*www.LoginReply, error) {
 	reply := www.LoginReply{
@@ -1275,36 +1069,78 @@ func (p *politeiawww) processVerifyUpdateUserKey(u *user.User, vu www.VerifyUpda
 	return u, p.db.UserUpdate(*u)
 }
 
-// processLogin checks that a user exists, is verified, and has
-// the correct password.
+// processLogin checks that the provided user credentials are valid and updates
+// the login fields for the user.
 func (p *politeiawww) processLogin(l www.Login) (*www.LoginReply, error) {
-	var (
-		r       loginReplyWithError
-		login   = make(chan loginReplyWithError)
-		timeout = make(chan bool)
-	)
+	log.Tracef("processLogin: %v", l.Username)
 
-	go func() {
-		login <- p.login(&l)
-	}()
-	go func() {
-		time.Sleep(MinimumLoginWaitTime)
-		timeout <- true
-	}()
-
-	// Execute both goroutines in parallel, and only return
-	// when both are finished.
-	select {
-	case r = <-login:
-	case <-timeout:
+	// Lookup user
+	u, err := p.db.UserGetByUsername(l.Username)
+	if err != nil {
+		if err == user.ErrUserNotFound {
+			err = www.UserError{
+				ErrorCode: www.ErrorStatusUserNotFound,
+			}
+		}
+		return nil, err
 	}
 
-	select {
-	case r = <-login:
-	case <-timeout:
+	// Ensure the account isn't locked
+	if userIsLocked(u.FailedLoginAttempts) {
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusUserLocked,
+		}
 	}
 
-	return r.reply, r.err
+	// Check the password
+	err = bcrypt.CompareHashAndPassword(u.HashedPassword,
+		[]byte(l.Password))
+	if err != nil {
+		// Password is wrong. Increment failed login attempts.
+		u.FailedLoginAttempts++
+		err := p.db.UserUpdate(*u)
+		if err != nil {
+			return nil, err
+		}
+
+		// If the user account has reached the limit for failed
+		// login attempts, send the user an email to notify them
+		// that their account is locked.
+		if userIsLocked(u.FailedLoginAttempts) {
+			err := p.emailUserLocked(u.Email)
+			if err != nil {
+				log.Errorf("processLogin: emailUserLocked '%v': %v",
+					u.Email, err)
+			}
+		}
+
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusInvalidPassword,
+		}
+	}
+
+	// Ensure user has been verified and has not been deactivated.
+	if u.NewUserVerificationToken != nil {
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusEmailNotVerified,
+		}
+	}
+	if u.Deactivated {
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusUserDeactivated,
+		}
+	}
+
+	// Update user login fields
+	lastLoginTime := u.LastLoginTime
+	u.FailedLoginAttempts = 0
+	u.LastLoginTime = time.Now().Unix()
+	err = p.db.UserUpdate(*u)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.createLoginReply(u, lastLoginTime)
 }
 
 // processChangeUsername checks that the password matches the one
@@ -1377,7 +1213,7 @@ func (p *politeiawww) processChangePassword(email string, cp www.ChangePassword)
 		[]byte(cp.CurrentPassword))
 	if err != nil {
 		return nil, www.UserError{
-			ErrorCode: www.ErrorStatusInvalidEmailOrPassword,
+			ErrorCode: www.ErrorStatusInvalidPassword,
 		}
 	}
 
@@ -1408,39 +1244,180 @@ func (p *politeiawww) processChangePassword(email string, cp www.ChangePassword)
 	return &reply, nil
 }
 
-// processResetPassword is intended to be called twice; in the first call, an
-// email is provided and the function checks if the user exists. If the user exists, it
-// generates a verification token and stores it in the database. In the second
-// call, the email, verification token and a new password are provided. If everything
-// matches, then the user's password is updated in the database.
-func (p *politeiawww) processResetPassword(rp www.ResetPassword) (*www.ResetPasswordReply, error) {
-	var reply www.ResetPasswordReply
-
-	// Get user from db.
-	u, err := p.userByEmail(rp.Email)
+func (p *politeiawww) resetPassword(rp www.ResetPassword) resetPasswordResult {
+	// Lookup user
+	u, err := p.db.UserGetByUsername(rp.Username)
 	if err != nil {
 		if err == user.ErrUserNotFound {
-			log.Debugf("processResetPassword: user not found %v",
-				rp.Email)
 			err = www.UserError{
 				ErrorCode: www.ErrorStatusUserNotFound,
 			}
 		}
+		return resetPasswordResult{
+			err: err,
+		}
+	}
 
+	// Ensure the provided email address matches the user record
+	// email address. If the addresses does't match, return so
+	// that the verification token doesn't get sent.
+	if rp.Email != u.Email {
+		log.Debugf("resetPassword: wrong email: %v %v",
+			rp.Email, u.Email)
+		return resetPasswordResult{}
+	}
+
+	// If the user already has a verification token that has not
+	// yet expired, do nothing.
+	t := time.Now().Unix()
+	if t < u.ResetPasswordVerificationExpiry {
+		log.Debugf("resetPassword: unexpired verification token: %v %v",
+			t, u.ResetPasswordVerificationExpiry)
+		return resetPasswordResult{}
+	}
+
+	// The verification token is not present or is present but has expired.
+
+	// Generate a new verification token and expiry.
+	tokenb, expiry, err := newVerificationTokenAndExpiry()
+	if err != nil {
+		return resetPasswordResult{
+			err: err,
+		}
+	}
+
+	// Try to email the verification link first. If it fails, the
+	// user record won't be updated in the database.
+	err = p.emailResetPasswordVerificationLink(rp.Email, rp.Username,
+		hex.EncodeToString(tokenb))
+	if err != nil {
+		return resetPasswordResult{
+			err: err,
+		}
+	}
+
+	// Update the user record
+	u.ResetPasswordVerificationToken = tokenb
+	u.ResetPasswordVerificationExpiry = expiry
+	err = p.db.UserUpdate(*u)
+	if err != nil {
+		return resetPasswordResult{
+			err: err,
+		}
+	}
+
+	// Only include the verification token in the reply if the
+	// email server has been disabled.
+	var reply www.ResetPasswordReply
+	if p.smtp.disabled {
+		reply.VerificationToken = hex.EncodeToString(tokenb)
+	}
+
+	return resetPasswordResult{
+		reply: reply,
+	}
+}
+
+// processResetPassword is used to perform a password change when the user is
+// not logged in. The provided email address must match the email address
+// or the user record that corresponds to the provided username.
+func (p *politeiawww) processResetPassword(rp www.ResetPassword) (*www.ResetPasswordReply, error) {
+	log.Tracef("processResetPassword: %v", rp.Username)
+	var (
+		wg sync.WaitGroup
+		ch = make(chan resetPasswordResult)
+	)
+
+	// Wait for both go routines to finish before returning the
+	// reply. This is done to prevent an attacker from being able
+	// to execute a timing attack to determine if the provided
+	// email address is the user's valid email address.
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		ch <- p.resetPassword(rp)
+	}()
+	go func() {
+		defer wg.Done()
+		time.Sleep(resetPasswordMinWaitTime)
+	}()
+	rpr := <-ch
+	wg.Wait()
+
+	return &rpr.reply, rpr.err
+}
+
+// processVerifyResetPassword verifies the token that was sent to the user
+// during the reset password command. If everything checks out, the user's
+// password is updated with the provided new password and the user's account
+// is unlocked if it had previously been locked.
+func (p *politeiawww) processVerifyResetPassword(vrp www.VerifyResetPassword) (*www.VerifyResetPasswordReply, error) {
+	log.Tracef("processVerifyResetPassword: %v %v",
+		vrp.Username, vrp.VerificationToken)
+
+	// Lookup user
+	u, err := p.db.UserGetByUsername(vrp.Username)
+	if err != nil {
+		if err == user.ErrUserNotFound {
+			err = www.UserError{
+				ErrorCode: www.ErrorStatusUserNotFound,
+			}
+		}
 		return nil, err
 	}
 
-	if rp.VerificationToken == "" {
-		err = p.emailResetPassword(u, rp, &reply)
-	} else {
-		err = p.verifyResetPassword(u, rp, &reply)
+	// Validate verification token
+	token, err := hex.DecodeString(vrp.VerificationToken)
+	if err != nil {
+		log.Debugf("processVerifyResetPassword: decode hex '%v': %v",
+			vrp.VerificationToken, err)
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusVerificationTokenInvalid,
+		}
+	}
+	if !bytes.Equal(token, u.ResetPasswordVerificationToken) {
+		log.Debugf("processVerifyResetPassword: wrong token: %v %v",
+			hex.EncodeToString(token),
+			hex.EncodeToString(u.ResetPasswordVerificationToken))
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusVerificationTokenInvalid,
+		}
+	}
+	if u.ResetPasswordVerificationExpiry < time.Now().Unix() {
+		log.Debugf("processVerifyResetPassword: token expired: %v %v",
+			u.ResetPasswordVerificationExpiry, time.Now().Unix())
+		return nil, www.UserError{
+			ErrorCode: www.ErrorStatusVerificationTokenExpired,
+		}
 	}
 
+	// The client should be hashing the password before sending
+	// it to politeiawww. This validation is only relevant if the
+	// client failed to hash the password or does not include a
+	// password in the request.
+	err = validatePassword(vrp.NewPassword)
 	if err != nil {
 		return nil, err
 	}
 
-	return &reply, nil
+	// Hash the new password
+	hashedPassword, err := p.hashPassword(vrp.NewPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update the user
+	u.ResetPasswordVerificationToken = nil
+	u.ResetPasswordVerificationExpiry = 0
+	u.HashedPassword = hashedPassword
+	u.FailedLoginAttempts = 0
+
+	err = p.db.UserUpdate(*u)
+	if err != nil {
+		return nil, err
+	}
+
+	return &www.VerifyResetPasswordReply{}, nil
 }
 
 // processUserProposalCredits returns a list of the user's unspent proposal
