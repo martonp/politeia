@@ -932,29 +932,79 @@ func (d *decred) getStartVotesForAuthorizeVotes(avMap map[string]AuthorizeVote) 
 	return svMap, nil
 }
 
-func (d *decred) getVoteResultsForStartVotes(svMap map[string]StartVote) (map[string]VoteResults, error) {
+func (d *decred) getVoteResultsForStartVotes(svMap map[string]StartVote) (map[string][]decredplugin.VoteOptionResult, error) {
 	tokens := make([]string, 0, len(svMap))
 	for token := range svMap {
 		tokens = append(tokens, token)
 	}
 
 	vrs := make([]VoteResults, 0, len(tokens))
-	vrMap := make(map[string]VoteResults)
 	err := d.recordsdb.
 		Where("token IN (?)", tokens).
 		Preload("Results").
 		Preload("Results.Option").
 		Find(&vrs).
 		Error
-
 	if err != nil {
 		return nil, err
 	}
+
+	resMap := make(map[string][]decredplugin.VoteOptionResult)
+
 	for _, vr := range vrs {
-		vrMap[vr.Token] = vr
+		resMap[vr.Token] = convertVoteOptionResultsToDecred(vr.Results)
 	}
 
-	return vrMap, nil
+	return resMap, nil
+}
+
+func (d *decred) lookupResultsForVoteOptions(options []VoteOption) ([]decredplugin.VoteOptionResult, error) {
+
+	results := make([]decredplugin.VoteOptionResult, 0, len(options))
+
+	for _, v := range options {
+		var votes uint64
+		tokenVoteBit := v.Token + strconv.FormatUint(v.Bits, 16)
+		err := d.recordsdb.
+			Model(&CastVote{}).
+			Where("token_vote_bit = ?", tokenVoteBit).
+			Count(&votes).
+			Error
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results,
+			decredplugin.VoteOptionResult{
+				ID:          v.ID,
+				Description: v.Description,
+				Bits:        v.Bits,
+				Votes:       votes,
+			})
+	}
+
+	return results, nil
+}
+
+func (d *decred) manuallyLookupNewVoteResults(resMap map[string][]decredplugin.VoteOptionResult, svMap map[string]StartVote) error {
+
+	for token, sv := range svMap {
+
+		_, ok := resMap[token]
+		if ok {
+			continue
+		}
+
+		results, err := d.lookupResultsForVoteOptions(sv.Options)
+		if err != nil {
+			return err
+		}
+
+		resMap[token] = results
+
+	}
+
+	return nil
 }
 
 func (d *decred) cmdBatchVoteSummary(payload string) (string, error) {
@@ -998,26 +1048,24 @@ func (d *decred) cmdBatchVoteSummary(payload string) (string, error) {
 		return "", fmt.Errorf("lookup start vote: %v", err)
 	}
 
-	vrMap, err := d.getVoteResultsForStartVotes(svMap)
+	resMap, err := d.getVoteResultsForStartVotes(svMap)
 	if err != nil {
 		return "", fmt.Errorf("lookup vote results: %v", err)
 	}
+
+	d.manuallyLookupNewVoteResults(resMap, svMap)
 
 	summariesMap := make(map[string]decredplugin.VoteSummaryReply)
 	for _, token := range bvs.Tokens {
 
 		av := avMap[token]
 		sv := svMap[token]
-		vr := vrMap[token]
+		results := resMap[token]
 
 		var endHeight string
 		if sv.EndHeight != 0 {
 			endHeight = strconv.FormatUint(sv.EndHeight, 10)
 		}
-
-		results := make([]decredplugin.VoteOptionResult, 0, 16)
-		vor := convertVoteOptionResultsToDecred(vr.Results)
-		results = append(results, vor...)
 
 		vsr := decredplugin.VoteSummaryReply{
 			Authorized:          (av.Action == decredplugin.AuthVoteActionAuthorize),
