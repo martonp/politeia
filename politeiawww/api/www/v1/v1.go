@@ -390,6 +390,7 @@ type VoteSummary struct {
 	NumOfEligibleVotes int                `json:"numofeligiblevotes"` // Total number of eligible votes
 	QuorumPercentage   uint32             `json:"quorumpercentage"`   // Percent of eligible votes required for quorum
 	PassPercentage     uint32             `json:"passpercentage"`     // Percent of total votes required to pass
+	TestNet            bool               `json:"testnet"`            // Is the vote using mainnet or testnet tickets
 }
 
 // ProposalRecord is an entire proposal and it's content.

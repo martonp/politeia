@@ -1608,6 +1608,7 @@ func (p *politeiawww) voteSummaries(tokens []string, bestBlock uint64) (map[stri
 			NumOfEligibleVotes: summary.EligibleTicketCount,
 			QuorumPercentage:   summary.QuorumPercentage,
 			PassPercentage:     summary.PassPercentage,
+			TestNet:            p.cfg.TestNet,
 		}
 
 		voteSummaries[token] = vs
