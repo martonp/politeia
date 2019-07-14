@@ -1583,6 +1583,8 @@ func (p *politeiawww) setVoteStatusReply(v www.VoteStatusReply) {
 	p.voteStatuses[v.Token] = v
 }
 
+// voteSummaries retrieves the voting summary information for a set of
+// proposals.
 func (p *politeiawww) voteSummaries(tokens []string, bestBlock uint64) (map[string]www.VoteSummary, error) {
 
 	r, err := p.decredBatchVoteSummary(tokens)

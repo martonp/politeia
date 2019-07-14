@@ -1232,7 +1232,7 @@ sendReply:
 	}
 
 	vsr := decredplugin.VoteSummaryReply{
-		Authorized:          (av.Action == decredplugin.AuthVoteActionAuthorize),
+		Authorized:          av.Action == decredplugin.AuthVoteActionAuthorize,
 		EndHeight:           endHeight,
 		EligibleTicketCount: sv.EligibleTicketCount,
 		QuorumPercentage:    sv.QuorumPercentage,
