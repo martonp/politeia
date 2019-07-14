@@ -1589,17 +1589,17 @@ Reply:
 
 ```json
 {
-	"proposal": {
-		"name": "My Proposal",
-		"state": "2",
-		"status": 4,
-		"timestamp": 1539212044,
-		"userid": "",
-		"username": "",
-		"publickey": "57cf10a15828c633dc0af423669e7bbad2d30a062e4eb1e9c78919f77ebd1022",
-		"signature": "553beffb3fece5bdd540e0b83e977e4f68c1ac31e6f2e0a85c3c9aef9e65e3efe3d778edc504a9e88c101f68ad25e677dc3574c67a6e8d0ba711de4b91bec40d",
-		"files": [],
-		"numcomments": 0,
+  "proposal": {
+    "name": "My Proposal",
+    "state": "2",
+    "status": 4,
+    "timestamp": 1539212044,
+    "userid": "",
+    "username": "",
+    "publickey": "57cf10a15828c633dc0af423669e7bbad2d30a062e4eb1e9c78919f77ebd1022",
+    "signature": "553beffb3fece5bdd540e0b83e977e4f68c1ac31e6f2e0a85c3c9aef9e65e3efe3d778edc504a9e88c101f68ad25e677dc3574c67a6e8d0ba711de4b91bec40d",
+    "files": [],
+    "numcomments": 0,
     "version": "1",
     "votesummary": {
       "status": 3,
@@ -2947,7 +2947,6 @@ This is a shortened representation of a user, used for lists.
 | quorumpercentage | uint32 | Percent of eligible votes required for quorum |
 | passpercentage | uint32 | Percent of total votes required to pass |
 | testnet | boolean | True if voting is using testnet tickets |
-
 
 ### `Censorship record`
 
