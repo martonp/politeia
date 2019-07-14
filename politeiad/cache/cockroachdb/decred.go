@@ -1137,7 +1137,6 @@ func (d *decred) cmdVoteSummary(payload string) (string, error) {
 		Limit(1).
 		Find(&r).
 		Error
-
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			err = cache.ErrRecordNotFound

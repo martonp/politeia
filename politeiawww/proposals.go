@@ -405,14 +405,16 @@ func convertWWWPropCreditFromDatabasePropCredit(credit user.ProposalCredit) www.
 	}
 }
 
+// updatePropPointersWithVoteSummary takes a Proposal Record
+// and updates it with a summary of its voting process.
 func (p *politeiawww) updatePropWithVoteSummary(prop *www.ProposalRecord) error {
-	props := make([]*www.ProposalRecord, 1)
-	props[0] = prop
-
-	err := p.updatePropPointersWithVoteSummary(props)
-	return err
+	props := make([]*www.ProposalRecord, 0, 1)
+	props = append(props, prop)
+	return p.updatePropPointersWithVoteSummary(props)
 }
 
+// updatePropPointersWithVoteSummary takes a slice of Proposal Records
+// and updates them with a summary of their voting process.
 func (p *politeiawww) updatePropsWithVoteSummary(props []www.ProposalRecord) ([]www.ProposalRecord, error) {
 	propPointers := make([]*www.ProposalRecord, len(props))
 	for i := range props {
@@ -427,6 +429,8 @@ func (p *politeiawww) updatePropsWithVoteSummary(props []www.ProposalRecord) ([]
 	return props, nil
 }
 
+// updatePropPointersWithVoteSummary takes a slice of pointers to Proposal
+// Records and updates them with a summary of their voting process.
 func (p *politeiawww) updatePropPointersWithVoteSummary(props []*www.ProposalRecord) error {
 	tokens := make([]string, len(props))
 
@@ -439,11 +443,11 @@ func (p *politeiawww) updatePropPointersWithVoteSummary(props []*www.ProposalRec
 		return err
 	}
 
-	// Get Vote summaries
 	voteSummaries, err := p.voteSummaries(tokens, bb)
 	if err != nil {
 		return err
 	}
+
 	for _, prop := range props {
 		prop.VoteSummary = voteSummaries[prop.CensorshipRecord.Token]
 	}
@@ -471,6 +475,9 @@ func (p *politeiawww) getProp(token string) (*www.ProposalRecord, error) {
 	pr.NumComments = uint(len(dc))
 
 	err = p.updatePropWithVoteSummary(&pr)
+	if err != nil {
+		return nil, err
+	}
 
 	// Fill in proposal author info
 	u, err := p.db.UserGetByPubKey(pr.PublicKey)
@@ -532,6 +539,9 @@ func (p *politeiawww) getProps(tokens []string) (*[]www.ProposalRecord, error) {
 	}
 
 	props, err = p.updatePropsWithVoteSummary(props)
+	if err != nil {
+		return nil, err
+	}
 
 	return &props, nil
 }
@@ -566,6 +576,9 @@ func (p *politeiawww) getPropVersion(token, version string) (*www.ProposalRecord
 	}
 
 	err = p.updatePropWithVoteSummary(&pr)
+	if err != nil {
+		return nil, err
+	}
 
 	return &pr, nil
 }
