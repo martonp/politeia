@@ -280,6 +280,31 @@ func (p *politeiawww) handleProposalDetails(w http.ResponseWriter, r *http.Reque
 	util.RespondWithJSON(w, http.StatusOK, reply)
 }
 
+// handleBatchProposals handles the incoming batch vote status command. It
+// fetches the complete details for a list of proposals.
+func (p *politeiawww) handleBatchVoteStatus(w http.ResponseWriter, r *http.Request) {
+	log.Tracef("handleBatchVoteStatus")
+	var bvs www.BatchVoteStatus
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&bvs); err != nil {
+		RespondWithError(w, r, 0, "handleBatchVoteStatus: unmarshal",
+			www.UserError{
+				ErrorCode: www.ErrorStatusInvalidInput,
+			})
+		return
+	}
+
+	reply, err := p.processBatchVoteStatus(bvs)
+	if err != nil {
+		RespondWithError(w, r, 0,
+			"handleBatchVoteStatus: processBatchVoteStatus %v", err)
+		return
+	}
+
+	util.RespondWithJSON(w, http.StatusOK, reply)
+}
+
 // handleBatchProposals handles the incoming proposal batch command. It fetches
 // the complete details for a list of proposals.
 func (p *politeiawww) handleBatchProposals(w http.ResponseWriter, r *http.Request) {
@@ -1118,6 +1143,8 @@ func (p *politeiawww) setPoliteiaWWWRoutes() {
 		p.handleTokenInventory, permissionPublic)
 	p.addRoute(http.MethodPost, www.RouteBatchProposals,
 		p.handleBatchProposals, permissionPublic)
+	p.addRoute(http.MethodPost, www.RouteBatchVoteStatus,
+		p.handleBatchVoteStatus, permissionPublic)
 
 	// Routes that require being logged in.
 	p.addRoute(http.MethodGet, www.RouteProposalPaywallDetails,

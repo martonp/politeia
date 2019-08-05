@@ -43,6 +43,7 @@ const (
 	RouteUsers                    = "/users"
 	RouteTokenInventory           = "/proposals/tokeninventory"
 	RouteBatchProposals           = "/proposals/batch"
+	RouteBatchVoteStatus          = "/proposals/batchvotestatus"
 	RouteAllVetted                = "/proposals/vetted"
 	RouteAllUnvetted              = "/proposals/unvetted"
 	RouteNewProposal              = "/proposals/new"
@@ -408,7 +409,6 @@ type ProposalRecord struct {
 	PublishedAt         int64       `json:"publishedat,omitempty"`         // The timestamp of when the proposal has been published
 	CensoredAt          int64       `json:"censoredat,omitempty"`          // The timestamp of when the proposal has been censored
 	AbandonedAt         int64       `json:"abandonedat,omitempty"`         // The timestamp of when the proposal has been abandoned
-	VoteSummary         VoteSummary `json:"votesummary"`                   // Summary of current state of voting process
 
 	CensorshipRecord CensorshipRecord `json:"censorshiprecord"`
 }
@@ -761,6 +761,16 @@ type BatchProposals struct {
 // BatchProposalsReply is used to reply to a BatchProposals command.
 type BatchProposalsReply struct {
 	Proposals []ProposalRecord `json:"proposals"`
+}
+
+// BatchVoteStatus is used to request the voting status of multiple proposals.
+type BatchVoteStatus struct {
+	Tokens []string `json:"tokens"`
+}
+
+// BatchVoteStatusReply is used to reply to a BatchVoteStatus command.
+type BatchVoteStatusReply struct {
+	Statuses map[string]VoteSummary `json:"statuses"`
 }
 
 // SetProposalStatus is used to publish or censor an unreviewed proposal.
