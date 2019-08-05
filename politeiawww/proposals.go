@@ -405,6 +405,41 @@ func convertWWWPropCreditFromDatabasePropCredit(credit user.ProposalCredit) www.
 	}
 }
 
+// voteSummaries retrieves the voting summary information for a set of
+// proposals.
+func (p *politeiawww) voteSummaries(tokens []string, bestBlock uint64) (map[string]www.VoteSummary, error) {
+
+	r, err := p.decredBatchVoteSummary(tokens)
+	if err != nil {
+		return nil, err
+	}
+
+	voteSummaries := make(map[string]www.VoteSummary)
+
+	for token, summary := range r.Summaries {
+		results := convertVoteOptionResultsFromDecred(summary.Results)
+
+		endHeight, err := strconv.ParseUint(summary.EndHeight, 10, 64)
+		if err != nil {
+			endHeight = 0
+		}
+
+		vs := www.VoteSummary{
+			Status:           voteStatusFromVoteSummary(summary, bestBlock),
+			EligibleTickets:  uint32(summary.EligibleTicketCount),
+			EndHeight:        endHeight,
+			BestBlock:        bestBlock,
+			QuorumPercentage: summary.QuorumPercentage,
+			PassPercentage:   summary.PassPercentage,
+			Results:          results,
+		}
+
+		voteSummaries[token] = vs
+	}
+
+	return voteSummaries, nil
+}
+
 // updatePropPointersWithVoteSummary takes a slice of pointers to Proposal
 // Records and updates them with a summary of their voting process.
 func (p *politeiawww) updatePropPointersWithVoteSummary(props []*www.ProposalRecord) error {
@@ -425,8 +460,7 @@ func (p *politeiawww) updatePropPointersWithVoteSummary(props []*www.ProposalRec
 	}
 
 	for _, prop := range props {
-		summary := voteSummaries[prop.CensorshipRecord.Token]
-		prop.VoteSummary = &summary
+		prop.VoteSummary = voteSummaries[prop.CensorshipRecord.Token]
 	}
 
 	return nil
@@ -1582,41 +1616,6 @@ func (p *politeiawww) setVoteStatusReply(v www.VoteStatusReply) {
 	defer p.Unlock()
 
 	p.voteStatuses[v.Token] = v
-}
-
-// voteSummaries retrieves the voting summary information for a set of
-// proposals.
-func (p *politeiawww) voteSummaries(tokens []string, bestBlock uint64) (map[string]www.VoteSummary, error) {
-
-	r, err := p.decredBatchVoteSummary(tokens)
-	if err != nil {
-		return nil, err
-	}
-
-	voteSummaries := make(map[string]www.VoteSummary)
-
-	for token, summary := range r.Summaries {
-		results := convertVoteOptionResultsFromDecred(summary.Results)
-		var total uint64
-		for _, v := range results {
-			total += v.VotesReceived
-		}
-
-		vs := www.VoteSummary{
-			Status:             voteStatusFromVoteSummary(summary, bestBlock),
-			TotalVotes:         total,
-			OptionsResult:      results,
-			EndHeight:          summary.EndHeight,
-			BestBlock:          strconv.Itoa(int(bestBlock)),
-			NumOfEligibleVotes: summary.EligibleTicketCount,
-			QuorumPercentage:   summary.QuorumPercentage,
-			PassPercentage:     summary.PassPercentage,
-		}
-
-		voteSummaries[token] = vs
-	}
-
-	return voteSummaries, nil
 }
 
 func (p *politeiawww) voteStatusReply(token string, bestBlock uint64) (*www.VoteStatusReply, error) {

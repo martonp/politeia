@@ -1039,13 +1039,12 @@ func (d *decred) cmdBatchVoteSummary(payload string) (string, error) {
 	WHERE b.token IS NULL AND a.token IN (?)`
 
 	rows, err := d.recordsdb.Raw(query, bvs.Tokens).Rows()
-
 	if err != nil {
 		return "", err
 	}
 	defer rows.Close()
 
-	records := make(map[string]Record)
+	records := make(map[string]Record, len(bvs.Tokens))
 	for rows.Next() {
 		var r Record
 		err := d.recordsdb.ScanRows(rows, &r)
@@ -1070,7 +1069,7 @@ func (d *decred) cmdBatchVoteSummary(payload string) (string, error) {
 		return "", fmt.Errorf("lookup vote results: %v", err)
 	}
 
-	summaries := make(map[string]decredplugin.VoteSummaryReply)
+	summaries := make(map[string]decredplugin.VoteSummaryReply, len(bvs.Tokens))
 	for _, token := range bvs.Tokens {
 
 		av := authorizeVotes[token]

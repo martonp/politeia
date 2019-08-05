@@ -382,34 +382,33 @@ type CensorshipRecord struct {
 // VoteSummary contains information about the voting state of the process
 // related to a proposal.
 type VoteSummary struct {
-	Status             PropVoteStatusT    `json:"status"`             // Vote status (finished, started, etc)
-	TotalVotes         uint64             `json:"totalvotes"`         // Proposal's total number of votes
-	OptionsResult      []VoteOptionResult `json:"optionsresult"`      // VoteOptionResult for each option
-	EndHeight          string             `json:"endheight"`          // Vote end height
-	BestBlock          string             `json:"bestblock"`          // Current best block height
-	NumOfEligibleVotes int                `json:"numofeligiblevotes"` // Total number of eligible votes
-	QuorumPercentage   uint32             `json:"quorumpercentage"`   // Percent of eligible votes required for quorum
-	PassPercentage     uint32             `json:"passpercentage"`     // Percent of total votes required to pass
+	Status           PropVoteStatusT    `json:"status"`                     // Vote status
+	EligibleTickets  uint32             `json:"eligibletickets,omitempty"`  // Number of eligible tickets
+	EndHeight        uint64             `json:"endheight,omitempty"`        // Vote end height
+	BestBlock        uint64             `json:"bestblock,omitempty"`        // Current best block
+	QuorumPercentage uint32             `json:"quorumpercentage,omitempty"` // Percent of eligible votes required for quorum
+	PassPercentage   uint32             `json:"passpercentage,omitempty"`   // Percent of total votes required to pass
+	Results          []VoteOptionResult `json:"results,omitempty"`          // Vote results
 }
 
 // ProposalRecord is an entire proposal and it's content.
 type ProposalRecord struct {
-	Name                string       `json:"name"`                          // Suggested short proposal name
-	State               PropStateT   `json:"state"`                         // Current state of proposal
-	Status              PropStatusT  `json:"status"`                        // Current status of proposal
-	Timestamp           int64        `json:"timestamp"`                     // Last update of proposal
-	UserId              string       `json:"userid"`                        // ID of user who submitted proposal
-	Username            string       `json:"username"`                      // Username of user who submitted proposal
-	PublicKey           string       `json:"publickey"`                     // Key used for signature.
-	Signature           string       `json:"signature"`                     // Signature of merkle root
-	Files               []File       `json:"files"`                         // Files that make up the proposal
-	NumComments         uint         `json:"numcomments"`                   // Number of comments on the proposal
-	Version             string       `json:"version"`                       // Record version
-	StatusChangeMessage string       `json:"statuschangemessage,omitempty"` // Message associated to the status change
-	PublishedAt         int64        `json:"publishedat,omitempty"`         // The timestamp of when the proposal has been published
-	CensoredAt          int64        `json:"censoredat,omitempty"`          // The timestamp of when the proposal has been censored
-	AbandonedAt         int64        `json:"abandonedat,omitempty"`         // The timestamp of when the proposal has been abandoned
-	VoteSummary         *VoteSummary `json:"votesummary"`                   // Summary of current state of voting process
+	Name                string      `json:"name"`                          // Suggested short proposal name
+	State               PropStateT  `json:"state"`                         // Current state of proposal
+	Status              PropStatusT `json:"status"`                        // Current status of proposal
+	Timestamp           int64       `json:"timestamp"`                     // Last update of proposal
+	UserId              string      `json:"userid"`                        // ID of user who submitted proposal
+	Username            string      `json:"username"`                      // Username of user who submitted proposal
+	PublicKey           string      `json:"publickey"`                     // Key used for signature.
+	Signature           string      `json:"signature"`                     // Signature of merkle root
+	Files               []File      `json:"files"`                         // Files that make up the proposal
+	NumComments         uint        `json:"numcomments"`                   // Number of comments on the proposal
+	Version             string      `json:"version"`                       // Record version
+	StatusChangeMessage string      `json:"statuschangemessage,omitempty"` // Message associated to the status change
+	PublishedAt         int64       `json:"publishedat,omitempty"`         // The timestamp of when the proposal has been published
+	CensoredAt          int64       `json:"censoredat,omitempty"`          // The timestamp of when the proposal has been censored
+	AbandonedAt         int64       `json:"abandonedat,omitempty"`         // The timestamp of when the proposal has been abandoned
+	VoteSummary         VoteSummary `json:"votesummary"`                   // Summary of current state of voting process
 
 	CensorshipRecord CensorshipRecord `json:"censorshiprecord"`
 }
