@@ -922,21 +922,21 @@ func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, u
 	return &reply, nil
 }
 
-func (p *politeiawww) processBatchVoteStatus(batchVoteStatus www.BatchVoteStatus) (*www.BatchVoteStatusReply, error) {
-	log.Tracef("processBatchVoteStatus")
+func (p *politeiawww) processBatchVoteSummary(batchVoteSummary www.BatchVoteSummary) (*www.BatchVoteSummaryReply, error) {
+	log.Tracef("processBatchVoteSummary")
 
 	bb, err := p.getBestBlock()
 	if err != nil {
 		return nil, err
 	}
 
-	statuses, err := p.voteSummaries(batchVoteStatus.Tokens, bb)
+	summaries, err := p.voteSummaries(batchVoteSummary.Tokens, bb)
 	if err != nil {
 		return nil, err
 	}
 
-	reply := www.BatchVoteStatusReply{
-		Statuses: statuses,
+	reply := www.BatchVoteSummaryReply{
+		Summaries: summaries,
 	}
 
 	return &reply, nil

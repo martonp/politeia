@@ -43,7 +43,7 @@ const (
 	RouteUsers                    = "/users"
 	RouteTokenInventory           = "/proposals/tokeninventory"
 	RouteBatchProposals           = "/proposals/batch"
-	RouteBatchVoteStatus          = "/proposals/batchvotestatus"
+	RouteBatchVoteSummary         = "/proposals/batchvotesummary"
 	RouteAllVetted                = "/proposals/vetted"
 	RouteAllUnvetted              = "/proposals/unvetted"
 	RouteNewProposal              = "/proposals/new"
@@ -763,14 +763,14 @@ type BatchProposalsReply struct {
 	Proposals []ProposalRecord `json:"proposals"`
 }
 
-// BatchVoteStatus is used to request the voting status of multiple proposals.
-type BatchVoteStatus struct {
+// BatchVoteSummary is used to request the voting summary of multiple proposals.
+type BatchVoteSummary struct {
 	Tokens []string `json:"tokens"`
 }
 
-// BatchVoteStatusReply is used to reply to a BatchVoteStatus command.
-type BatchVoteStatusReply struct {
-	Statuses map[string]VoteSummary `json:"statuses"`
+// BatchVoteSummaryReply is used to reply to a BatchVoteSummary command.
+type BatchVoteSummaryReply struct {
+	Summaries map[string]VoteSummary `json:"summaries"`
 }
 
 // SetProposalStatus is used to publish or censor an unreviewed proposal.
