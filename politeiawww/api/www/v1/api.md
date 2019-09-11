@@ -1585,6 +1585,103 @@ Reply:
 }
 ```
 
+### `Batch Vote Summary`
+
+Retrieve the vote summary for a list of proposals.
+
+**Routes:** `POST /v1/proposals/batchvotesummary`
+
+**Params:**
+
+| Parameter | Type | Description | Required |
+|-|-|-|-|
+| tokens | [string] | Array of censorship tokens of the proposals for which you want to get a summary of the voting process | Yes |
+
+**Results:**
+
+| | Type | Description |
+|-|-|-|
+| statuses | { string : [`VoteSummary`](#Vote-Summary) } | Map of token to vote summary |
+
+On failure the call shall return `400 Bad Request` on the following error code:
+- [`ErrorStatusProposalNotFound`](#ErrorStatusProposalNotFound)
+- [`ErrorStatusMaxProposalsExceededPolicy`](#ErrorStatusMaxProposalsExceededPolicy)
+- [`ErrorStatusInvalidCensorshipToken`](#ErrorStatusInvalidCensorshipToken)
+
+**Example**
+
+Request:
+
+```
+/v1/proposals/batchvotesummary
+```
+
+```json
+{
+    "tokens": ["f08dc22069f854856e27a6cb107e10064a85b85b2a4db41755d54f90bd30b84f", 
+               "c9aaf64f9474a0c2aa2227363e3ba575e1926acd4257deba42dc6d5ab85f2cd2"]
+}
+```
+
+Reply:
+
+```json
+{
+  "summaries": {
+    "bestblock": 243994,
+    "f08dc22069f854856e27a6cb107e10064a85b85b2a4db41755d54f90bd30b84f": {
+      "status": 4,
+      "eligibletickets": 5267,
+      "endheight": 231614,
+      "quorumpercentage": 20,
+      "passpercentage": 60,
+      "results": [
+        {
+          "option": {
+            "id": "no",
+            "description": "Don't approve proposal",
+            "bits": 1
+          },
+          "votesreceived": 3
+        },
+        {
+          "option": {
+            "id": "yes",
+            "description": "Approve proposal",
+            "bits": 2
+          },
+          "votesreceived": 2
+        }
+      ]
+    },
+    "c9aaf64f9474a0c2aa2227363e3ba575e1926acd4257deba42dc6d5ab85f2cd2": {
+      "status": 4,
+      "eligibletickets": 5270,
+      "endheight": 229602,
+      "quorumpercentage": 20,
+      "passpercentage": 60,
+      "results": [
+        {
+          "option": {
+            "id": "no",
+            "description": "Don't approve proposal",
+            "bits": 1
+          },
+          "votesreceived": 1
+        },
+        {
+          "option": {
+            "id": "yes",
+            "description": "Approve proposal",
+            "bits": 2
+          },
+          "votesreceived": 4
+        }
+      ]
+    }
+  }
+}
+```
 
 ### `New comment`
 
@@ -1616,6 +1713,8 @@ proposal"; if the value is not empty it means "reply to comment".
 | receipt | string | Server signature of the client Signature |
 | timestamp | int64 | UNIX time when comment was accepted |
 | resultvotes | int64 | Vote score |
+| upvotes | uint64 | Pro votes |
+| downvotes | uint64 | Contra votes |
 | censored | bool | Has the comment been censored |
 | userid | string | Unique user identifier |
 | username | string | Unique username |
@@ -1698,6 +1797,8 @@ sorted.
 | receipt | string | Server signature of the client Signature |
 | totalvotes | uint64 | Total number of up/down votes |
 | resultvotes | int64 | Vote score |
+| upvotes | uint64 | Pro votes |
+| downvotes | uint64 | Contra votes |
 
 **Example**
 
@@ -1725,7 +1826,9 @@ Reply:
     "userid": "124",
     "username": "john",
     "totalvotes": 4,
-    "resultvotes": 3
+    "resultvotes": 2,
+    "upvotes": 3,
+    "downvotes": 1
   },{
     "comment":"you are right!",
     "commentid": "4",
@@ -1738,7 +1841,9 @@ Reply:
     "userid": "124",
     "username": "john",
     "totalvotes": 4,
-    "resultvotes": 3
+    "resultvotes": 2,
+    "upvotes": 3,
+    "downvotes": 1
   },{
     "comment":"you are crazy!",
     "commentid": "4",
@@ -1751,7 +1856,9 @@ Reply:
     "userid": "124",
     "username": "john",
     "totalvotes": 4,
-    "resultvotes": 3
+    "resultvotes": 2,
+    "upvotes": 3,
+    "downvotes": 1
   }],
   "accesstime": 1543539276
 }
@@ -1778,7 +1885,9 @@ Allows a user to up or down vote a comment
 | | Type | Description |
 |-|-|-|
 | total | uint64 | Total number of up and down votes |
-| result | int64 | Vote score |
+| resultvotes | int64 | Vote score |
+| upvotes | uint64 | Pro votes |
+| downvotes | uint64 | Contra votes |
 | receipt | string | Server signature of client signature |
 | error | Error if something went wront during liking a comment
 **Example:**
@@ -1800,7 +1909,9 @@ Reply:
 ```json
 {
   "total": 4,
-  "result": 3,
+  "result": 2,
+  "upvotes": 3,
+  "downvotes": 1,
   "receipt": "96f3956ea3decb75ee129e6ee4e77c6c608f0b5c99ff41960a4e6078d8bb74e8ad9d2545c01fff2f8b7e0af38ee9de406aea8a0b897777d619e93d797bc1650a"
 }
 ```
@@ -2242,7 +2353,9 @@ Reply:
 
 ### `Proposal vote status`
 
-Returns the vote status for a single public proposal
+**This route deprecated by [`Batch Vote Status`](#batch-vote-status).**
+
+Returns the vote status for a single public proposal.
 
 **Route:** `GET /V1/proposals/{token}/votestatus`
 
@@ -2321,7 +2434,9 @@ Reply:
 
 ### `Proposals vote status`
 
-Returns the vote status of all public proposals
+**This route deprecated by [`Batch Vote Status`](#batch-vote-status).**
+
+Returns the vote status of all public proposals.
 
 **Route:** `GET /V1/proposals/votestatus`
 
@@ -2713,6 +2828,18 @@ This is a shortened representation of a user, used for lists.
 | mime | string | MIME type of the payload. Currently the system only supports md and png files. The server shall reject invalid MIME types. |
 | digest | string | Digest is a SHA256 digest of the payload. The digest shall be verified by politeiad. |
 | payload | string | Payload is the actual file content. It shall be base64 encoded. Files have size limits that can be obtained via the [`Policy`](#policy) call. The server shall strictly enforce policy limits. |
+
+### `Vote Summary`
+
+| | Type | Description |
+|-|-|-|
+| status | int | Status identifier |
+| eligibletickets | int | Total number of eligible tickets |
+| endheight | uint64 | The chain height in which the vote will end |
+| bestblock | uint64 | The current chain height |
+| quorumpercentage | uint32 | Percent of eligible votes required for quorum |
+| passpercentage | uint32 | Percent of total votes required to pass |
+| optionsresult | array of VoteOptionResult | Option description along with the number of votes it has received |
 
 ### `Censorship record`
 

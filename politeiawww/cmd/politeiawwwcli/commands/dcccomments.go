@@ -4,30 +4,30 @@
 
 package commands
 
-// InvoiceCommentsCmd retreives the comments for the specified invoice.
-type InvoiceCommentsCmd struct {
+// DCCCommentsCmd retreives the comments for the specified dcc.
+type DCCCommentsCmd struct {
 	Args struct {
 		Token string `positional-arg-name:"token"` // Censorship token
 	} `positional-args:"true" required:"true"`
 }
 
 // Execute executes the invoice comments command.
-func (cmd *InvoiceCommentsCmd) Execute(args []string) error {
-	gcr, err := client.InvoiceComments(cmd.Args.Token)
+func (cmd *DCCCommentsCmd) Execute(args []string) error {
+	gcr, err := client.DCCComments(cmd.Args.Token)
 	if err != nil {
 		return err
 	}
 	return printJSON(gcr)
 }
 
-// invoiceCommentsHelpMsg is the output for the help command when
-// 'invoicecomments' is specified.
-const invoiceCommentsHelpMsg = `invoicecomments "token" 
+// dccCommentsHelpMsg is the output for the help command when
+// 'dcccomments' is specified.
+const dccCommentsHelpMsg = `dcccomments "token" 
 
 Get the comments for a invoice.
 
 Arguments:
-1. token       (string, required)   Invoice censorship token
+1. token       (string, required)   DCC censorship token
 
 Result:
 {
@@ -42,8 +42,6 @@ Result:
       "receipt":      (string)  Server signature of the comment signature
       "timestamp":    (int64)   Received UNIX timestamp
       "resultvotes":  (int64)   Vote score
-      "upvotes":      (uint64)  Pro votes
-      "downvotes":    (uint64)  Contra votes
       "censored":     (bool)    If comment has been censored
       "userid":       (string)  User id
       "username":     (string)  Username

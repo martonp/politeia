@@ -6,11 +6,12 @@ package commands
 
 import (
 	"encoding/hex"
-	"github.com/decred/politeia/politeiawww/api/www/v1"
+
+	v1 "github.com/decred/politeia/politeiawww/api/www/v1"
 )
 
-// NewCommentCmd submits a new proposal comment.
-type NewCommentCmd struct {
+// NewDCCCommentCmd submits a new dcc comment.
+type NewDCCCommentCmd struct {
 	Args struct {
 		Token    string `positional-arg-name:"token" required:"true"`   // Censorship token
 		Comment  string `positional-arg-name:"comment" required:"true"` // Comment text
@@ -19,7 +20,7 @@ type NewCommentCmd struct {
 }
 
 // Execute executes the new comment command.
-func (cmd *NewCommentCmd) Execute(args []string) error {
+func (cmd *NewDCCCommentCmd) Execute(args []string) error {
 	token := cmd.Args.Token
 	comment := cmd.Args.Comment
 	parentID := cmd.Args.ParentID
@@ -46,7 +47,7 @@ func (cmd *NewCommentCmd) Execute(args []string) error {
 	}
 
 	// Send request
-	ncr, err := client.NewComment(nc)
+	ncr, err := client.NewDCCComment(nc)
 	if err != nil {
 		return err
 	}
@@ -55,14 +56,14 @@ func (cmd *NewCommentCmd) Execute(args []string) error {
 	return printJSON(ncr)
 }
 
-// newCommentHelpMsg is the output of the help command when 'newcomment' is
+// newDCCCommentHelpMsg is the output of the help command when 'newcomment' is
 // specified.
-const newCommentHelpMsg = `newcomment "token" "comment"
+const newDCCCommentHelpMsg = `newcomment "token" "comment"
 
 Comment on proposal as logged in user. 
 
 Arguments:
-1. token       (string, required)   Proposal censorship token
+1. token       (string, required)   DCC censorship token
 2. comment     (string, required)   Comment
 3. parentID    (string, required if replying to comment)  Id of commment
 
@@ -87,8 +88,6 @@ Response:
     "receipt":      (string)  Server signature of the comment signature
     "timestamp":    (int64)   Received UNIX timestamp
     "resultvotes":  (int64)   Vote score
-    "upvotes":      (uint64)  Pro votes
-    "downvotes":    (uint64)  Contra votes
     "censored":     (bool)    If comment has been censored
     "userid":       (string)  User id
     "username":     (string)  Username

@@ -66,7 +66,8 @@ func (c *cockroachdb) newCMSUser(tx *gorm.DB, nu user.NewCMSUser) error {
 
 	// Create a CMSUser record
 	cms := CMSUser{
-		ID: *id,
+		ID:             *id,
+		ContractorType: nu.ContractorType,
 	}
 	err = tx.Create(&cms).Error
 	if err != nil {
@@ -120,8 +121,8 @@ func (c *cockroachdb) updateCMSUser(tx *gorm.DB, nu user.UpdateCMSUser) error {
 			cms.Domain = nu.Domain
 			cms.GitHubName = nu.GitHubName
 			cms.MatrixName = nu.MatrixName
-			cms.ContractorType = nu.ContractorType
 			cms.ContractorName = nu.ContractorName
+			cms.ContractorType = nu.ContractorType
 			cms.ContractorLocation = nu.ContractorLocation
 			cms.ContractorContact = nu.ContractorContact
 			cms.SupervisorUserID = nu.SupervisorUserID
@@ -136,8 +137,8 @@ func (c *cockroachdb) updateCMSUser(tx *gorm.DB, nu user.UpdateCMSUser) error {
 	cms.Domain = nu.Domain
 	cms.GitHubName = nu.GitHubName
 	cms.MatrixName = nu.MatrixName
-	cms.ContractorType = nu.ContractorType
 	cms.ContractorName = nu.ContractorName
+	cms.ContractorType = nu.ContractorType
 	cms.ContractorLocation = nu.ContractorLocation
 	cms.ContractorContact = nu.ContractorContact
 	cms.SupervisorUserID = nu.SupervisorUserID

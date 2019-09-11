@@ -68,6 +68,12 @@ var (
 			cms.InvoiceStatusDisputed,
 		},
 	}
+	// The valid contractor
+	invalidNewInvoiceContractorType = map[cms.ContractorTypeT]bool{
+		cms.ContractorTypeNominee: true,
+		cms.ContractorTypeInvalid: true,
+	}
+
 	validInvoiceField = regexp.MustCompile(createInvoiceFieldRegex())
 	validName         = regexp.MustCompile(createNameRegex())
 	validLocation     = regexp.MustCompile(createLocationRegex())
@@ -261,7 +267,18 @@ func validateContact(contact string) error {
 func (p *politeiawww) processNewInvoice(ni cms.NewInvoice, u *user.User) (*cms.NewInvoiceReply, error) {
 	log.Tracef("processNewInvoice")
 
-	err := p.validateInvoice(ni, u)
+	cmsUser, err := p.getCMSUserByID(u.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure that the user is not unauthorized to create invoices
+	if _, ok := invalidNewInvoiceContractorType[cmsUser.ContractorType]; ok {
+		return nil, www.UserError{
+			ErrorCode: cms.ErrorStatusInvalidUserNewInvoice,
+		}
+	}
+	err = p.validateInvoice(ni, u)
 	if err != nil {
 		return nil, err
 	}

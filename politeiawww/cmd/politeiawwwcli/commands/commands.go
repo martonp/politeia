@@ -54,6 +54,10 @@ var (
 	// is required but has not been passed into the command.
 	errInvoiceCSVNotFound = errors.New("invoice csv file not found.  " +
 		"You must either provide a csv file or use the --random flag.")
+
+	// errInvalidDCCType is emitted if there is a bad dcc type used.
+	errInvalidDCCType = errors.New("submitted dcc type is invalid," +
+		"must be 1 (Issuance) or 2 (Revocation)")
 )
 
 // Cmds is used to represent all of the politeiawwwcli commands.
@@ -62,11 +66,15 @@ type Cmds struct {
 	ActiveVotes         ActiveVotesCmd         `command:"activevotes" description:"(public) get the proposals that are being voted on"`
 	AuthorizeVote       AuthorizeVoteCmd       `command:"authorizevote" description:"(user)   authorize a proposal vote (must be proposal author)"`
 	BatchProposals      BatchProposalsCmd      `command:"batchproposals" description:"(user) retrieve a set of proposals"`
+	BatchVoteSummary    BatchVoteSummaryCmd    `command:"batchvotesummary" description:"(user) retrieve the vote summary for a set of proposals"`
 	CensorComment       CensorCommentCmd       `command:"censorcomment" description:"(admin)  censor a proposal comment"`
 	ChangePassword      ChangePasswordCmd      `command:"changepassword" description:"(user)   change the password for the logged in user"`
 	ChangeUsername      ChangeUsernameCmd      `command:"changeusername" description:"(user)   change the username for the logged in user"`
 	CMSUserDetails      CMSUserDetailsCmd      `command:"cmsuserdetails" description:"(user) get current cms user details"`
 	CMSEditUser         CMSEditUserCmd         `command:"cmsedituser" description:"(user) edit current cms user information"`
+	DCCDetails          DCCDetailsCmd          `command:"dccdetails" description:"(user) get the details of a dcc"`
+	DCCComments         DCCCommentsCmd         `command:"dcccomments" description:"(user) get the comments for a dcc proposal"`
+	GetDCCs             GetDCCsCmd             `command:"getdccs" description:"(user) get all dccs (optional by status)"`
 	EditInvoice         EditInvoiceCmd         `command:"editinvoice" description:"(user)    edit a invoice"`
 	EditProposal        EditProposalCmd        `command:"editproposal" description:"(user)   edit a proposal"`
 	ManageUser          ManageUserCmd          `command:"manageuser" description:"(admin)  edit certain properties of the specified user"`
@@ -83,6 +91,8 @@ type Cmds struct {
 	Login               LoginCmd               `command:"login" description:"(public) login to Politeia"`
 	Logout              LogoutCmd              `command:"logout" description:"(public) logout of Politeia"`
 	Me                  MeCmd                  `command:"me" description:"(user)   get user details for the logged in user"`
+	NewDCC              NewDCCCmd              `command:"newdcc" description:"(user)   creates a new dcc proposal"`
+	NewDCCComment       NewDCCCommentCmd       `command:"newdcccomment" description:"(user)   creates a new comment on a dcc proposal"`
 	NewInvoice          NewInvoiceCmd          `command:"newinvoice" description:"(user)   create a new invoice"`
 	NewProposal         NewProposalCmd         `command:"newproposal" description:"(user)   create a new proposal"`
 	NewComment          NewCommentCmd          `command:"newcomment" description:"(user)   create a new proposal comment"`
@@ -103,6 +113,7 @@ type Cmds struct {
 	SetProposalStatus   SetProposalStatusCmd   `command:"setproposalstatus" description:"(admin)  set the status of a proposal"`
 	StartVote           StartVoteCmd           `command:"startvote" description:"(admin)  start the voting period on a proposal"`
 	Subscribe           SubscribeCmd           `command:"subscribe" description:"(public) subscribe to all websocket commands and do not exit tool"`
+	SupportOpposeDCC    SupportOpposeDCCCmd    `command:"supportopposedcc" description:"(user) support or oppose a given DCC"`
 	Tally               TallyCmd               `command:"tally" description:"(public) get the vote tally for a proposal"`
 	TestRun             TestRunCmd             `command:"testrun" description:"         run a series of tests on the politeiawww routes (dev use only)"`
 	TokenInventory      TokenInventoryCmd      `command:"tokeninventory" description:"(public) get the censorship record tokens of all proposals"`
@@ -326,6 +337,51 @@ func verifyInvoice(p cms.InvoiceRecord, serverPubKey string) error {
 	}
 	if !pid.VerifyMessage([]byte(p.CensorshipRecord.Merkle), sig) {
 		return fmt.Errorf("could not verify proposal signature")
+	}
+
+	// Verify censorship record signature
+	id, err := util.IdentityFromString(serverPubKey)
+	if err != nil {
+		return err
+	}
+	s, err := util.ConvertSignature(p.CensorshipRecord.Signature)
+	if err != nil {
+		return err
+	}
+	msg := []byte(p.CensorshipRecord.Merkle + p.CensorshipRecord.Token)
+	if !id.VerifyMessage(msg, s) {
+		return fmt.Errorf("could not verify censorship record signature")
+	}
+
+	return nil
+}
+
+// verifyDCC verifies a dcc's merkle root, author signature, and
+// censorship record.
+func verifyDCC(p cms.DCCRecord, serverPubKey string) error {
+	// Verify merkle root
+
+	files := make([]v1.File, 0, 1)
+	files = append(files, p.File)
+	mr, err := merkleRoot(files)
+	if err != nil {
+		return err
+	}
+	if mr != p.CensorshipRecord.Merkle {
+		return fmt.Errorf("merkle roots do not match")
+	}
+
+	// Verify dcc signature
+	pid, err := util.IdentityFromString(p.PublicKey)
+	if err != nil {
+		return err
+	}
+	sig, err := util.ConvertSignature(p.Signature)
+	if err != nil {
+		return err
+	}
+	if !pid.VerifyMessage([]byte(p.CensorshipRecord.Merkle), sig) {
+		return fmt.Errorf("could not verify dcc signature")
 	}
 
 	// Verify censorship record signature
