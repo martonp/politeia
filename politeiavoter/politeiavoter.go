@@ -31,7 +31,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/decred/politeia/politeiad/api/v1/identity"
-	"github.com/decred/politeia/politeiawww/api/www/v1"
+	v1 "github.com/decred/politeia/politeiawww/api/www/v1"
 	"github.com/decred/politeia/util"
 	"github.com/gorilla/schema"
 	"golang.org/x/crypto/ssh/terminal"
@@ -340,24 +340,26 @@ func (c *ctx) makeRequest(method, route string, b interface{}) ([]byte, error) {
 	return responseBody, nil
 }
 
-func (c *ctx) _inventory() (*v1.ActiveVoteReply, error) {
-	responseBody, err := c.makeRequest("GET", v1.RouteActiveVote, nil)
+func (c *ctx) activeVoteTokens() ([]string, error) {
+	responseBody, err := c.makeRequest("GET", v1.RouteTokenInventory, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var ar v1.ActiveVoteReply
-	err = json.Unmarshal(responseBody, &ar)
+	var ti v1.TokenInventoryReply
+	err = json.Unmarshal(responseBody, &ti)
 	if err != nil {
-		return nil, fmt.Errorf("Could not unmarshal ActiveVoteReply: %v",
+		return nil, fmt.Errorf("Could not unmarshal TokenInventoryReply: %v",
 			err)
 	}
+	fmt.Printf("active: %v\n", ti.Active)
 
-	return &ar, nil
+	return ti.Active, nil
 }
 
 func (c *ctx) inventory() error {
-	i, err := c._inventory()
+	tokens, err := c.activeVoteTokens()
+
 	if err != nil {
 		return err
 	}
@@ -368,14 +370,11 @@ func (c *ctx) inventory() error {
 		return err
 	}
 	latestBlock := ar.CurrentBlockHeight
-	//fmt.Printf("Current block: %v\n", latestBlock)
 
-	for _, v := range i.Votes {
-		// Make sure we have a CensorshipRecord
-		if v.Proposal.CensorshipRecord.Token == "" {
-			// This should not happen
-			log.Debugf("skipping empty CensorshipRecord")
-			continue
+	for _, token := range tokens {
+		v, err := c._tally(token)
+		if err != nil {
+			return err
 		}
 
 		// Make sure we have valid vote bits
@@ -383,7 +382,7 @@ func (c *ctx) inventory() error {
 			v.StartVote.Vote.Options == nil {
 			// This should not happen
 			log.Errorf("invalid vote bits: %v",
-				v.Proposal.CensorshipRecord.Token)
+				token)
 			continue
 		}
 
@@ -423,7 +422,6 @@ func (c *ctx) inventory() error {
 
 		// Display vote bits
 		fmt.Printf("Vote: %v\n", v.StartVote.Vote.Token)
-		fmt.Printf("  Proposal        : %v\n", v.Proposal.Name)
 		fmt.Printf("  Start block     : %v\n", v.StartVoteReply.StartBlockHeight)
 		fmt.Printf("  End block       : %v\n", v.StartVoteReply.EndHeight)
 		fmt.Printf("  Mask            : %v\n", v.StartVote.Vote.Mask)
