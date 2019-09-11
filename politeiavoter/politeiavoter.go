@@ -309,6 +309,7 @@ func (c *ctx) makeRequest(method, route string, b interface{}) ([]byte, error) {
 
 	req.Header.Set("User-Agent", c.userAgent)
 	req.Header.Add(v1.CsrfToken, c.csrf)
+
 	r, err := c.client.Do(req)
 	if _, ok := err.(*url.Error); ok {
 		return nil, errRetry
@@ -352,16 +353,25 @@ func (c *ctx) activeVoteTokens() ([]string, error) {
 		return nil, fmt.Errorf("Could not unmarshal TokenInventoryReply: %v",
 			err)
 	}
-	fmt.Printf("active: %v\n", ti.Active)
 
 	return ti.Active, nil
 }
 
 func (c *ctx) inventory() error {
 	tokens, err := c.activeVoteTokens()
-
 	if err != nil {
 		return err
+	}
+
+	proposalRecords, err := c._batchProposals(tokens)
+	if err != nil {
+		log.Errorf("batchprop error: %v",
+			err)
+		return err
+	}
+	tokenToName := make(map[string]string)
+	for _, proposal := range proposalRecords {
+		tokenToName[proposal.CensorshipRecord.Token] = proposal.Name
 	}
 
 	// Get latest block
@@ -422,6 +432,7 @@ func (c *ctx) inventory() error {
 
 		// Display vote bits
 		fmt.Printf("Vote: %v\n", v.StartVote.Vote.Token)
+		fmt.Printf("  Proposal        : %v\n", tokenToName[token])
 		fmt.Printf("  Start block     : %v\n", v.StartVoteReply.StartBlockHeight)
 		fmt.Printf("  End block       : %v\n", v.StartVoteReply.EndHeight)
 		fmt.Printf("  Mask            : %v\n", v.StartVote.Vote.Mask)
@@ -869,6 +880,26 @@ func (c *ctx) _tally(token string) (*v1.VoteResultsReply, error) {
 	}
 
 	return &vrr, nil
+}
+
+func (c *ctx) _batchProposals(tokens []string) ([]v1.ProposalRecord, error) {
+	bp := v1.BatchProposals{
+		Tokens: tokens,
+	}
+
+	responseBody, err := c.makeRequest("POST", v1.RouteBatchProposals, bp)
+	if err != nil {
+		return nil, err
+	}
+
+	var bpr v1.BatchProposalsReply
+	err = json.Unmarshal(responseBody, &bpr)
+	if err != nil {
+		return nil, fmt.Errorf("Could not unmarshal "+
+			"BatchProposalsReply: %v", err)
+	}
+
+	return bpr.Proposals, nil
 }
 
 func (c *ctx) tally(args []string) error {
