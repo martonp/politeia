@@ -2117,8 +2117,6 @@ func (p *politeiawww) processStartVote(sv www.StartVote, u *user.User) (*www.Sta
 		}
 	}
 
-	sv.Vote.Duration = p.cfg.VoteDurationMax
-
 	// Validate vote parameters
 	if sv.Vote.Duration < p.cfg.VoteDurationMin ||
 		sv.Vote.Duration > p.cfg.VoteDurationMax ||

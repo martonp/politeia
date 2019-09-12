@@ -440,6 +440,7 @@ func (c *ctx) inventory() error {
 			err)
 		return err
 	}
+
 	tokenToProposalName := make(map[string]string)
 	for _, proposal := range proposalRecords {
 		tokenToProposalName[proposal.CensorshipRecord.Token] = proposal.Name
