@@ -428,7 +428,7 @@ func (c *ctx) activeVoteTokens() ([]string, error) {
 	return ti.Active, nil
 }
 
-func (c *ctx) _batchProposals(tokens []string) ([]v1.ProposalRecord, error) {
+func (c *ctx) batchProposals(tokens []string) ([]v1.ProposalRecord, error) {
 	bp := v1.BatchProposals{
 		Tokens: tokens,
 	}
@@ -454,7 +454,7 @@ func (c *ctx) inventory() error {
 		return err
 	}
 
-	proposalRecords, err := c._batchProposals(tokens)
+	proposalRecords, err := c.batchProposals(tokens)
 	if err != nil {
 		log.Errorf("batchprop error: %v",
 			err)
