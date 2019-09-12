@@ -32,7 +32,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/decred/politeia/politeiad/api/v1/identity"
-	v1 "github.com/decred/politeia/politeiawww/api/www/v1"
+	"github.com/decred/politeia/politeiawww/api/www/v1"
 	"github.com/decred/politeia/util"
 	"github.com/gorilla/schema"
 	"golang.org/x/crypto/ssh/terminal"
@@ -426,6 +426,26 @@ func (c *ctx) activeVoteTokens() ([]string, error) {
 	}
 
 	return ti.Active, nil
+}
+
+func (c *ctx) _batchProposals(tokens []string) ([]v1.ProposalRecord, error) {
+	bp := v1.BatchProposals{
+		Tokens: tokens,
+	}
+
+	responseBody, err := c.makeRequest("POST", v1.RouteBatchProposals, bp)
+	if err != nil {
+		return nil, err
+	}
+
+	var bpr v1.BatchProposalsReply
+	err = json.Unmarshal(responseBody, &bpr)
+	if err != nil {
+		return nil, fmt.Errorf("Could not unmarshal "+
+			"BatchProposalsReply: %v", err)
+	}
+
+	return bpr.Proposals, nil
 }
 
 func (c *ctx) inventory() error {
@@ -949,26 +969,6 @@ func (c *ctx) _tally(token string) (*v1.VoteResultsReply, error) {
 	}
 
 	return &vrr, nil
-}
-
-func (c *ctx) _batchProposals(tokens []string) ([]v1.ProposalRecord, error) {
-	bp := v1.BatchProposals{
-		Tokens: tokens,
-	}
-
-	responseBody, err := c.makeRequest("POST", v1.RouteBatchProposals, bp)
-	if err != nil {
-		return nil, err
-	}
-
-	var bpr v1.BatchProposalsReply
-	err = json.Unmarshal(responseBody, &bpr)
-	if err != nil {
-		return nil, fmt.Errorf("Could not unmarshal "+
-			"BatchProposalsReply: %v", err)
-	}
-
-	return bpr.Proposals, nil
 }
 
 func (c *ctx) tally(args []string) error {
