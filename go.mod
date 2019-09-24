@@ -14,12 +14,13 @@ require (
 	github.com/decred/dcrd/blockchain/stake v1.1.0
 	github.com/decred/dcrd/certgen v1.1.0
 	github.com/decred/dcrd/chaincfg v1.5.1
-	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
+	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
 	github.com/decred/dcrd/dcrutil v1.3.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
 	github.com/decred/dcrd/wire v1.2.0
 	github.com/decred/dcrdata/api/types/v3 v3.0.0
+	github.com/decred/dcrdata/explorer/types/v2 v2.0.4
 	github.com/decred/dcrdata/pubsub/types/v2 v2.0.0
 	github.com/decred/dcrdata/pubsub/v2 v2.0.1
 	github.com/decred/dcrdata/semver v1.0.0
@@ -52,6 +53,8 @@ require (
 	github.com/jrick/logrotate v1.0.0
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/marcopeereboom/sbox v1.0.0
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/otiai10/copy v1.0.1
 	github.com/otiai10/curr v0.0.0-20190513014714-f5a3d24e5776 // indirect
 	github.com/pmezard/go-difflib v1.0.0

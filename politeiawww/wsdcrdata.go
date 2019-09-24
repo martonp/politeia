@@ -100,6 +100,23 @@ func (w *wsDcrdata) unsubFromAddr(address string) error {
 	return nil
 }
 
+// subToNewBlock subscribes to dcrdata events for new blocks
+func (w *wsDcrdata) subToNewBlock() error {
+	event := "newblock"
+	if w.isSubscribed(event) {
+		return errDuplicateSub
+	}
+	_, err := w.client.Subscribe(event)
+	if err != nil {
+		log.Infof("XXXXXXXXXXXXXXXXXXXXX %v", err)
+
+		return fmt.Errorf("failed to subscribe: %v", err)
+	}
+	w.addSub(event)
+	log.Infof("wsDcrdata subscribed to best block")
+	return nil
+}
+
 // newWSDcrdata return a new wsDcrdata context.
 func newWSDcrdata() (*wsDcrdata, error) {
 	// Init websocket client

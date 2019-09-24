@@ -499,11 +499,20 @@ func _main() error {
 	p.router = mux.NewRouter()
 	p.router.Use(recoverMiddleware)
 
+	// Setup dcrdata watcher
+	ws, err := newWSDcrdata()
+	if err != nil {
+		return fmt.Errorf("new wsDcrdata: %v", err)
+	}
+	p.wsDcrdata = ws
+
 	switch p.cfg.Mode {
 	case politeiaWWWMode:
 		p.setPoliteiaWWWRoutes()
 		// XXX setup user routes
 		p.setUserWWWRoutes()
+
+		p.setupBestBlockWatcher()
 	case cmsWWWMode:
 		p.setCMSWWWRoutes()
 		// XXX setup user routes
@@ -537,12 +546,6 @@ func _main() error {
 		p.cron = cron.New()
 		p.checkInvoiceNotifications()
 
-		// Setup address watcher
-		ws, err := newWSDcrdata()
-		if err != nil {
-			return fmt.Errorf("new wsDcrdata: %v", err)
-		}
-		p.wsDcrdata = ws
 		p.setupCMSAddressWatcher()
 		err = p.restartCMSAddressesWatching()
 		if err != nil {
