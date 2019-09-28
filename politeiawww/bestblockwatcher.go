@@ -4,19 +4,18 @@
 
 package main
 
-import exptypes "github.com/decred/dcrdata/explorer/types/v2"
+import exptypes "github.com/decred/dcrdata/explorer/types"
 
 func (p *politeiawww) setupBestBlockWatcher() {
 	p.wsDcrdata.subToPing()
 	p.wsDcrdata.subToNewBlock()
-	log.Infof("FUCK YOUU!~")
 
 	go func() {
 		for {
-			log.Infof("FUCK YOUU12222!~")
 
 			msg, ok := <-p.wsDcrdata.client.Receive()
 			if !ok {
+				log.Infof("BAD MESSAGE")
 				break
 			}
 			if msg == nil {
@@ -25,14 +24,12 @@ func (p *politeiawww) setupBestBlockWatcher() {
 			}
 
 			switch m := msg.Message.(type) {
-			case string:
-				log.Infof("Message (%s): %s", msg.EventId, m)
-			case int:
-				log.Infof("Message (%s): %v", msg.EventId, m)
 			case *exptypes.WebsocketBlock:
-				log.Debugf("Message (%s): WebsocketBlock(height=%v)", m)
+				log.Infof("Message (%s): WebsocketBlock(hash=%s)", msg.EventId, m.Block.Height)
+				p.bestBlock = uint64(m.Block.Height)
 			default:
-				log.Infof("Message of type %v unhandled. %v", msg.EventId, msg.Message)
+				log.Debugf("Message of type %v unhandled.", m)
+				continue
 			}
 		}
 	}()

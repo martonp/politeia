@@ -331,6 +331,11 @@ func _main() error {
 		params:          activeNetParams.Params,
 	}
 
+	p.bestBlock, err = p.getBestBlock()
+	if err != nil {
+		return err
+	}
+
 	// Check if this command is being run to fetch the identity.
 	if p.cfg.FetchIdentity {
 		return p.getIdentity()

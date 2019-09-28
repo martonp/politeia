@@ -992,12 +992,7 @@ func (p *politeiawww) processBatchVoteSummary(batchVoteSummary www.BatchVoteSumm
 		}
 	}
 
-	bb, err := p.getBestBlock()
-	if err != nil {
-		return nil, err
-	}
-
-	summaries, err := p.getVoteSummaries(batchVoteSummary.Tokens, bb)
+	summaries, err := p.getVoteSummaries(batchVoteSummary.Tokens, p.bestBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -1019,7 +1014,7 @@ func (p *politeiawww) processBatchVoteSummary(batchVoteSummary www.BatchVoteSumm
 	}
 
 	return &www.BatchVoteSummaryReply{
-		BestBlock: bb,
+		BestBlock: p.bestBlock,
 		Summaries: summaries,
 	}, nil
 }
@@ -1333,12 +1328,7 @@ func (p *politeiawww) processEditProposal(ep www.EditProposal, u *user.User) (*w
 	}
 	vd := convertVoteDetailsReplyFromDecred(*vdr)
 
-	bb, err := p.getBestBlock()
-	if err != nil {
-		return nil, err
-	}
-
-	s := getVoteStatus(vd.AuthorizeVoteReply, vd.StartVoteReply, bb)
+	s := getVoteStatus(vd.AuthorizeVoteReply, vd.StartVoteReply, p.bestBlock)
 	if s != www.PropVoteStatusNotAuthorized {
 		return nil, www.UserError{
 			ErrorCode: www.ErrorStatusWrongVoteStatus,
@@ -1620,11 +1610,11 @@ func (p *politeiawww) getVoteStatusReply(token string) (*www.VoteStatusReply, bo
 	return &voteStatusReply, true
 }
 
-func (p *politeiawww) voteStatusReply(token string, bestBlock uint64) (*www.VoteStatusReply, error) {
+func (p *politeiawww) voteStatusReply(token string) (*www.VoteStatusReply, error) {
 	cachedVsr, ok := p.getVoteStatusReply(token)
 
 	if ok {
-		cachedVsr.BestBlock = strconv.Itoa(int(bestBlock))
+		cachedVsr.BestBlock = strconv.Itoa(int(p.bestBlock))
 		return cachedVsr, nil
 	}
 
@@ -1643,11 +1633,11 @@ func (p *politeiawww) voteStatusReply(token string, bestBlock uint64) (*www.Vote
 
 	voteStatusReply := www.VoteStatusReply{
 		Token:              token,
-		Status:             voteStatusFromVoteSummary(*r, bestBlock),
+		Status:             voteStatusFromVoteSummary(*r, p.bestBlock),
 		TotalVotes:         total,
 		OptionsResult:      results,
 		EndHeight:          r.EndHeight,
-		BestBlock:          strconv.Itoa(int(bestBlock)),
+		BestBlock:          strconv.Itoa(int(p.bestBlock)),
 		NumOfEligibleVotes: r.EligibleTicketCount,
 		QuorumPercentage:   r.QuorumPercentage,
 		PassPercentage:     r.PassPercentage,
@@ -1687,14 +1677,8 @@ func (p *politeiawww) processVoteStatus(token string) (*www.VoteStatusReply, err
 		}
 	}
 
-	// Get best block
-	bestBlock, err := p.getBestBlock()
-	if err != nil {
-		return nil, fmt.Errorf("bestBlock: %v", err)
-	}
-
 	// Get vote status
-	vsr, err := p.voteStatusReply(token, bestBlock)
+	vsr, err := p.voteStatusReply(token)
 	if err != nil {
 		return nil, fmt.Errorf("voteStatusReply: %v", err)
 	}
@@ -1705,13 +1689,6 @@ func (p *politeiawww) processVoteStatus(token string) (*www.VoteStatusReply, err
 // processGetAllVoteStatus returns the vote status of all public proposals.
 func (p *politeiawww) processGetAllVoteStatus() (*www.GetAllVoteStatusReply, error) {
 	log.Tracef("processGetAllVoteStatus")
-
-	// We need to determine best block height here in order
-	// to set the voting status
-	bestBlock, err := p.getBestBlock()
-	if err != nil {
-		return nil, fmt.Errorf("bestBlock: %v", err)
-	}
 
 	// Get all proposals from cache
 	all, err := p.getAllProps()
@@ -1728,7 +1705,7 @@ func (p *politeiawww) processGetAllVoteStatus() (*www.GetAllVoteStatusReply, err
 		}
 
 		// Get vote status for proposal
-		vs, err := p.voteStatusReply(v.CensorshipRecord.Token, bestBlock)
+		vs, err := p.voteStatusReply(v.CensorshipRecord.Token)
 		if err != nil {
 			return nil, fmt.Errorf("voteStatusReply: %v", err)
 		}
@@ -1743,13 +1720,6 @@ func (p *politeiawww) processGetAllVoteStatus() (*www.GetAllVoteStatusReply, err
 
 func (p *politeiawww) processActiveVote() (*www.ActiveVoteReply, error) {
 	log.Tracef("processActiveVote")
-
-	// We need to determine best block height here and only
-	// return active votes.
-	bestBlock, err := p.getBestBlock()
-	if err != nil {
-		return nil, err
-	}
 
 	// Get all proposals from cache
 	all, err := p.getAllProps()
@@ -1770,7 +1740,7 @@ func (p *politeiawww) processActiveVote() (*www.ActiveVoteReply, error) {
 		vd := convertVoteDetailsReplyFromDecred(*vdr)
 
 		// We only want proposals that are currently being voted on
-		s := getVoteStatus(vd.AuthorizeVoteReply, vd.StartVoteReply, bestBlock)
+		s := getVoteStatus(vd.AuthorizeVoteReply, vd.StartVoteReply, p.bestBlock)
 		if s != www.PropVoteStatusStarted {
 			continue
 		}
@@ -2224,27 +2194,23 @@ func (p *politeiawww) processStartVote(sv www.StartVote, u *user.User) (*www.Sta
 func (p *politeiawww) processTokenInventory(isAdmin bool) (*www.TokenInventoryReply, error) {
 	log.Tracef("processTokenInventory")
 
-	bb, err := p.getBestBlock()
-	if err != nil {
-		return nil, err
-	}
-
 	// The vote results cache table is lazy loaded and may
 	// need to be updated. If it does need to be updated, the
 	// token inventory call will need to be retried after the
 	// update is complete.
 	var done bool
 	var r www.TokenInventoryReply
+	var err error
 	for retries := 0; !done && retries <= 1; retries++ {
 		// Both vetted and unvetted tokens should be returned
 		// for admins. Only vetted tokens should be returned
 		// for non-admins.
-		ti, err := p.decredTokenInventory(bb, isAdmin)
+		ti, err := p.decredTokenInventory(p.bestBlock, isAdmin)
 		if err != nil {
 			if err == cache.ErrRecordNotFound {
 				// There are missing entries in the vote
 				// results cache table. Load them.
-				_, err := p.decredLoadVoteResults(bb)
+				_, err := p.decredLoadVoteResults(p.bestBlock)
 				if err != nil {
 					return nil, err
 				}
