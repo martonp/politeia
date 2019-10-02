@@ -108,12 +108,10 @@ func (w *wsDcrdata) subToNewBlock() error {
 	}
 	_, err := w.client.Subscribe(event)
 	if err != nil {
-		log.Infof("XXXXXXXXXXXXXXXXXXXXX %v", err)
-
 		return fmt.Errorf("failed to subscribe: %v", err)
 	}
 	w.addSub(event)
-	log.Infof("wsDcrdata subscribed to best block")
+	log.Infof("wsDcrdata subscribed to new block")
 	return nil
 }
 

@@ -511,13 +511,14 @@ func _main() error {
 	}
 	p.wsDcrdata = ws
 
+	p.setupDcrDataWatcher()
+
 	switch p.cfg.Mode {
 	case politeiaWWWMode:
 		p.setPoliteiaWWWRoutes()
 		// XXX setup user routes
 		p.setUserWWWRoutes()
 
-		p.setupBestBlockWatcher()
 	case cmsWWWMode:
 		p.setCMSWWWRoutes()
 		// XXX setup user routes
@@ -551,7 +552,6 @@ func _main() error {
 		p.cron = cron.New()
 		p.checkInvoiceNotifications()
 
-		p.setupCMSAddressWatcher()
 		err = p.restartCMSAddressesWatching()
 		if err != nil {
 			log.Errorf("error restarting address watcher %v", err)
