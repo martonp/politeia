@@ -1743,7 +1743,8 @@ func (p *politeiawww) processActiveVote() (*www.ActiveVoteReply, error) {
 		vd := convertVoteDetailsReplyFromDecred(*vdr)
 
 		// We only want proposals that are currently being voted on
-		s := getVoteStatus(vd.AuthorizeVoteReply, vd.StartVoteReply, p.bestBlock)
+		s := getVoteStatus(vd.AuthorizeVoteReply, vd.StartVoteReply,
+			p.bestBlock)
 		if s != www.PropVoteStatusStarted {
 			continue
 		}
