@@ -331,6 +331,8 @@ func _main() error {
 		params:          activeNetParams.Params,
 	}
 
+	// Get initial value for best block. This will subsequently be updated by
+	// the websocket connection to dcrdata.
 	p.bestBlock, err = p.getBestBlock()
 	if err != nil {
 		return err
@@ -510,7 +512,6 @@ func _main() error {
 		return fmt.Errorf("new wsDcrdata: %v", err)
 	}
 	p.wsDcrdata = ws
-
 	p.setupDcrDataWatcher()
 
 	switch p.cfg.Mode {
@@ -518,7 +519,6 @@ func _main() error {
 		p.setPoliteiaWWWRoutes()
 		// XXX setup user routes
 		p.setUserWWWRoutes()
-
 	case cmsWWWMode:
 		p.setCMSWWWRoutes()
 		// XXX setup user routes

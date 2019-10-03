@@ -76,6 +76,7 @@ func (p *politeiawww) setupDcrDataWatcher() {
 			case *pstypes.AddressMessage:
 				log.Debugf("Message (%s): AddressMessage(address=%s, txHash=%s)",
 					msg.EventId, m.Address, m.TxHash)
+
 				// Check payment history for address
 				payment, err := p.cmsDB.PaymentsByAddress(m.Address)
 				if err != nil {

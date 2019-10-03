@@ -992,7 +992,9 @@ func (p *politeiawww) processBatchVoteSummary(batchVoteSummary www.BatchVoteSumm
 		}
 	}
 
-	summaries, err := p.getVoteSummaries(batchVoteSummary.Tokens, p.bestBlock)
+	bb := p.bestBlock
+
+	summaries, err := p.getVoteSummaries(batchVoteSummary.Tokens, bb)
 	if err != nil {
 		return nil, err
 	}
@@ -1014,7 +1016,7 @@ func (p *politeiawww) processBatchVoteSummary(batchVoteSummary www.BatchVoteSumm
 	}
 
 	return &www.BatchVoteSummaryReply{
-		BestBlock: p.bestBlock,
+		BestBlock: bb,
 		Summaries: summaries,
 	}, nil
 }
@@ -1631,13 +1633,14 @@ func (p *politeiawww) voteStatusReply(token string) (*www.VoteStatusReply, error
 		total += v.VotesReceived
 	}
 
+	bb := p.bestBlock
 	voteStatusReply := www.VoteStatusReply{
 		Token:              token,
-		Status:             voteStatusFromVoteSummary(*r, p.bestBlock),
+		Status:             voteStatusFromVoteSummary(*r, bb),
 		TotalVotes:         total,
 		OptionsResult:      results,
 		EndHeight:          r.EndHeight,
-		BestBlock:          strconv.Itoa(int(p.bestBlock)),
+		BestBlock:          strconv.Itoa(int(bb)),
 		NumOfEligibleVotes: r.EligibleTicketCount,
 		QuorumPercentage:   r.QuorumPercentage,
 		PassPercentage:     r.PassPercentage,
@@ -2194,23 +2197,26 @@ func (p *politeiawww) processStartVote(sv www.StartVote, u *user.User) (*www.Sta
 func (p *politeiawww) processTokenInventory(isAdmin bool) (*www.TokenInventoryReply, error) {
 	log.Tracef("processTokenInventory")
 
+	bb := p.bestBlock
+
 	// The vote results cache table is lazy loaded and may
-	// need to be updated. If it does need to be updated, the
+	// need to be updated. If it does need to be ue pdated, the
 	// token inventory call will need to be retried after the
 	// update is complete.
 	var done bool
 	var r www.TokenInventoryReply
 	var err error
+
 	for retries := 0; !done && retries <= 1; retries++ {
 		// Both vetted and unvetted tokens should be returned
 		// for admins. Only vetted tokens should be returned
 		// for non-admins.
-		ti, err := p.decredTokenInventory(p.bestBlock, isAdmin)
+		ti, err := p.decredTokenInventory(bb, isAdmin)
 		if err != nil {
 			if err == cache.ErrRecordNotFound {
 				// There are missing entries in the vote
 				// results cache table. Load them.
-				_, err := p.decredLoadVoteResults(p.bestBlock)
+				_, err := p.decredLoadVoteResults(bb)
 				if err != nil {
 					return nil, err
 				}
