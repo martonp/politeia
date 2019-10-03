@@ -2200,7 +2200,7 @@ func (p *politeiawww) processTokenInventory(isAdmin bool) (*www.TokenInventoryRe
 	bb := p.bestBlock
 
 	// The vote results cache table is lazy loaded and may
-	// need to be updated. If it does need to be ue pdated, the
+	// need to be updated. If it does need to be updated, the
 	// token inventory call will need to be retried after the
 	// update is complete.
 	var done bool
