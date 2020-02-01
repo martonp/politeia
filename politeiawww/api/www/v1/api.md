@@ -243,7 +243,7 @@ to get the CSRF token for the session and to ensure API compatibility.
 | testnet | boolean | Value to inform either its running on testnet or not |
 | mode | string | Current mode that politeiawww is running (possibly piwww or cmswww) |
 | activeusersesstion | boolean | Indicates if there is an active user from the session or not |
-| tokenprefixlength | number | The length of token prefix needed for the short proposal details request |
+| tokenprefixlength | number | The length of token prefix needed for the [`short proposal details`](#short-proposal-details) route |
 
 **Example**
 
@@ -262,8 +262,8 @@ Reply:
   "pubkey": "99e748e13d7ecf70ef6b5afa376d692cd7cb4dbb3d26fa83f417d29e44c6bb6c",
   "testnet": true,
   "mode": "piwww",
-  "activeusersession": true
-
+  "activeusersession": true,
+  "tokenprefixlength": 6
 }
 ```
 
@@ -1565,7 +1565,8 @@ Reply:
 
 ### `Short proposal details`
 
-Retrieve proposal and its details using the 6 character prefix of its censorship token.
+Retrieve proposal and its details using the prefix of its censorship token. The length of the token
+required can be retreived using the [`version`](#version) route.
 
 **Routes:** `GET /v1/proposals/{tokenPrefix}`
 
@@ -1573,7 +1574,7 @@ Retrieve proposal and its details using the 6 character prefix of its censorship
 
 | Parameter | Type | Description | Required |
 |-|-|-|-|
-| tokenPrefix | string | 6 character prefix of token. | Yes |
+| tokenPrefix | string | Prefix of censorship token. | Yes |
 
 **Results:**
 

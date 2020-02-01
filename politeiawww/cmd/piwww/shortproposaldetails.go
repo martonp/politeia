@@ -10,10 +10,11 @@ import (
 	"github.com/decred/politeia/politeiawww/cmd/shared"
 )
 
-// ShortProposalDetailsCmd retrieves the details of a proposal.
+// ShortProposalDetailsCmd retrieves the details of a proposal using its
+// token's prefix.
 type ShortProposalDetailsCmd struct {
 	Args struct {
-		Prefix string `positional-arg-name:"tokenPrefix" required:"true"` // Censorship token
+		Prefix string `positional-arg-name:"tokenPrefix" required:"true"`
 	} `positional-args:"true"`
 }
 
@@ -47,7 +48,7 @@ func (cmd *ShortProposalDetailsCmd) Execute(args []string) error {
 const shortProposalDetailsHelpMsg = `shortproposaldetails "tokenPrefix"
 
 Get a proposal using the prefix of a token. The length of the prefix can be
-determined using the version request.
+determined using the version route.
 
 Arguments:
 1. tokenPrefix      (string, required)   Prefix of censorship token

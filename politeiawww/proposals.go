@@ -857,11 +857,10 @@ func (p *politeiawww) processNewProposal(np www.NewProposal, user *user.User) (*
 	}, nil
 }
 
-func (p *politeiawww) createProposalDetailsReply(prop *www.ProposalRecord, user *user.User) *www.ProposalDetailsReply {
-	reply := www.ProposalDetailsReply{
-		Proposal: *prop,
-	}
 
+// createProposalDetailsReply makes updates to a proposal record based on the
+// user who made the request, and puts it into a ProposalDetailsReply.
+func (p *politeiawww) createProposalDetailsReply(prop *www.ProposalRecord, user *user.User) *www.ProposalDetailsReply {
 	// Vetted proposals are viewable by everyone. The contents of
 	// an unvetted proposal is only viewable by admins and the
 	// proposal author. Unvetted proposal metadata is viewable by
@@ -878,14 +877,18 @@ func (p *politeiawww) createProposalDetailsReply(prop *www.ProposalRecord, user 
 		// Strip the non-public proposal contents if user is
 		// not the author or an admin
 		if !isAuthor && !isAdmin {
-			reply.Proposal.Name = ""
-			reply.Proposal.Files = make([]www.File, 0)
+			prop.Name = ""
+			prop.Files = make([]www.File, 0)
 		}
 	}
 
-	return &reply
+	return &www.ProposalDetailsReply{
+		Proposal: *prop,
+	}
 }
 
+// processProposalDetails fetches a specific proposal from the records cache
+// using the prefix of its token and returns it.
 func (p *politeiawww) processShortProposalDetails(tokenPrefix string, user *user.User) (*www.ProposalDetailsReply, error) {
 	log.Tracef("processShortProposalDetails")
 

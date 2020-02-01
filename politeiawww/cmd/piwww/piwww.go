@@ -74,7 +74,6 @@ type piwww struct {
 	Policy               PolicyCmd                `command:"policy" description:"(public) get the server policy"`
 	ProposalComments     ProposalCommentsCmd      `command:"proposalcomments" description:"(public) get the comments for a proposal"`
 	ProposalDetails      ProposalDetailsCmd       `command:"proposaldetails" description:"(public) get the details of a proposal"`
-	ShortProposalDetails ShortProposalDetailsCmd  `command:"shortproposaldetails" description:"(public) get the details of a proposal using token prefix"`
 	ProposalPaywall      ProposalPaywallCmd       `command:"proposalpaywall" description:"(user)   get proposal paywall details for the logged in user"`
 	RescanUserPayments   RescanUserPaymentsCmd    `command:"rescanuserpayments" description:"(admin)  rescan a user's payments to check for missed payments"`
 	ResendVerification   ResendVerificationCmd    `command:"resendverification" description:"(public) resend the user verification email"`
@@ -82,6 +81,7 @@ type piwww struct {
 	Secret               shared.SecretCmd         `command:"secret" description:"(user)   ping politeiawww"`
 	SendFaucetTx         SendFaucetTxCmd          `command:"sendfaucettx" description:"         send a DCR transaction using the Decred testnet faucet"`
 	SetProposalStatus    SetProposalStatusCmd     `command:"setproposalstatus" description:"(admin)  set the status of a proposal"`
+	ShortProposalDetails ShortProposalDetailsCmd  `command:"shortproposaldetails" description:"(public) get the details of a proposal using token prefix"`	
 	StartVote            StartVoteCmd             `command:"startvote" description:"(admin)  start the voting period on a proposal"`
 	Subscribe            SubscribeCmd             `command:"subscribe" description:"(public) subscribe to all websocket commands and do not exit tool"`
 	Tally                TallyCmd                 `command:"tally" description:"(public) get the vote tally for a proposal"`
