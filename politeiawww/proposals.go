@@ -392,6 +392,30 @@ func convertWWWPropCreditFromDatabasePropCredit(credit user.ProposalCredit) www.
 	}
 }
 
+// fillProposalMissingFields populates a ProposalRecord struct with the fields
+// that are not stored in the cache.
+func (p *politeiawww) fillProposalMissingFields(pr *www.ProposalRecord) (*www.ProposalRecord, error) {
+	// Find the number of comments for the proposal
+	dc, err := p.decredGetComments(pr.CensorshipRecord.Token)
+	if err != nil {
+		log.Errorf("getProp: decredGetComments failed "+
+			"for token %v", pr.CensorshipRecord.Token)
+	}
+	pr.NumComments = uint(len(dc))
+
+	// Fill in proposal author info
+	u, err := p.db.UserGetByPubKey(pr.PublicKey)
+	if err != nil {
+		log.Errorf("getProp: UserGetByPubKey: token:%v pubKey:%v err:%v",
+			pr.CensorshipRecord.Token, pr.PublicKey, err)
+	} else {
+		pr.UserId = u.ID.String()
+		pr.Username = u.Username
+	}
+
+	return pr, nil
+}
+
 // getProp gets the most recent verions of the given proposal from the cache
 // then fills in any missing fields before returning the proposal.
 func (p *politeiawww) getProp(token string) (*www.ProposalRecord, error) {
@@ -403,25 +427,7 @@ func (p *politeiawww) getProp(token string) (*www.ProposalRecord, error) {
 	}
 	pr := convertPropFromCache(*r)
 
-	// Find the number of comments for the proposal
-	dc, err := p.decredGetComments(token)
-	if err != nil {
-		log.Errorf("getProp: decredGetComments failed "+
-			"for token %v", token)
-	}
-	pr.NumComments = uint(len(dc))
-
-	// Fill in proposal author info
-	u, err := p.db.UserGetByPubKey(pr.PublicKey)
-	if err != nil {
-		log.Errorf("getProp: UserGetByPubKey: token:%v "+
-			"pubKey:%v err:%v", token, pr.PublicKey, err)
-	} else {
-		pr.UserId = u.ID.String()
-		pr.Username = u.Username
-	}
-
-	return &pr, nil
+	return p.fillProposalMissingFields(&pr)
 }
 
 // getProps returns a [token]www.ProposalRecord map for the provided list of
@@ -514,25 +520,22 @@ func (p *politeiawww) getPropVersion(token, version string) (*www.ProposalRecord
 	}
 	pr := convertPropFromCache(*r)
 
-	// Fetch number of comments for proposal from cache
-	dc, err := p.decredGetComments(token)
-	if err != nil {
-		log.Errorf("getPropVersion: decredGetComments "+
-			"failed for token %v", token)
-	}
-	pr.NumComments = uint(len(dc))
+	return p.fillProposalMissingFields(&pr)
+}
 
-	// Fill in proposal author info
-	u, err := p.db.UserGetByPubKey(pr.PublicKey)
-	if err != nil {
-		log.Errorf("getPropVersion: UserGetByPubKey: pubKey:%v "+
-			"token:%v err:%v", pr.PublicKey, token, err)
-	} else {
-		pr.UserId = u.ID.String()
-		pr.Username = u.Username
-	}
+// getProp gets the most recent verions of the given proposal from the cache
+// using its prefix, and then fills in any missing fields before returning
+// the proposal.
+func (p *politeiawww) getPropByPrefix(prefix string) (*www.ProposalRecord, error) {
+	log.Tracef("getPropByPrefix: %v", prefix)
 
-	return &pr, nil
+	r, err := p.cache.RecordByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+	pr := convertPropFromCache(*r)
+
+	return p.fillProposalMissingFields(&pr)
 }
 
 // getAllProps gets the latest version of all proposals from the cache then
@@ -854,30 +857,7 @@ func (p *politeiawww) processNewProposal(np www.NewProposal, user *user.User) (*
 	}, nil
 }
 
-// processProposalDetails fetches a specific proposal version from the records
-// cache and returns it.
-func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, user *user.User) (*www.ProposalDetailsReply, error) {
-	log.Tracef("processProposalDetails")
-
-	// Version is an optional query param. Fetch latest version
-	// when query param is not specified.
-	var prop *www.ProposalRecord
-	var err error
-	if propDetails.Version == "" {
-		prop, err = p.getProp(propDetails.Token)
-	} else {
-		prop, err = p.getPropVersion(propDetails.Token, propDetails.Version)
-	}
-	if err != nil {
-		if err == cache.ErrRecordNotFound {
-			err = www.UserError{
-				ErrorCode: www.ErrorStatusProposalNotFound,
-			}
-		}
-		return nil, err
-	}
-
-	// Setup reply
+func (p *politeiawww) createProposalDetailsReply(prop *www.ProposalRecord, user *user.User) *www.ProposalDetailsReply {
 	reply := www.ProposalDetailsReply{
 		Proposal: *prop,
 	}
@@ -903,7 +883,49 @@ func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, u
 		}
 	}
 
-	return &reply, nil
+	return &reply
+}
+
+func (p *politeiawww) processShortProposalDetails(tokenPrefix string, user *user.User) (*www.ProposalDetailsReply, error) {
+	log.Tracef("processShortProposalDetails")
+
+	prop, err := p.getPropByPrefix(tokenPrefix)
+	if err != nil {
+		if err == cache.ErrRecordNotFound {
+			err = www.UserError{
+				ErrorCode: www.ErrorStatusProposalNotFound,
+			}
+		}
+		return nil, err
+	}
+
+	return p.createProposalDetailsReply(prop, user), nil
+}
+
+// processProposalDetails fetches a specific proposal version from the records
+// cache and returns it.
+func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, user *user.User) (*www.ProposalDetailsReply, error) {
+	log.Tracef("processProposalDetails")
+
+	// Version is an optional query param. Fetch latest version
+	// when query param is not specified.
+	var prop *www.ProposalRecord
+	var err error
+	if propDetails.Version == "" {
+		prop, err = p.getProp(propDetails.Token)
+	} else {
+		prop, err = p.getPropVersion(propDetails.Token, propDetails.Version)
+	}
+	if err != nil {
+		if err == cache.ErrRecordNotFound {
+			err = www.UserError{
+				ErrorCode: www.ErrorStatusProposalNotFound,
+			}
+		}
+		return nil, err
+	}
+
+	return p.createProposalDetailsReply(prop, user), nil
 }
 
 // cacheVoteSumamary stores a given VoteSummary in memory.  This is to only
