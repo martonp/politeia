@@ -394,7 +394,7 @@ func convertWWWPropCreditFromDatabasePropCredit(credit user.ProposalCredit) www.
 
 // fillProposalMissingFields populates a ProposalRecord struct with the fields
 // that are not stored in the cache.
-func (p *politeiawww) fillProposalMissingFields(pr *www.ProposalRecord) (*www.ProposalRecord, error) {
+func (p *politeiawww) fillProposalMissingFields(pr *www.ProposalRecord) (*www.ProposalRecord) {
 	// Find the number of comments for the proposal
 	dc, err := p.decredGetComments(pr.CensorshipRecord.Token)
 	if err != nil {
@@ -413,7 +413,7 @@ func (p *politeiawww) fillProposalMissingFields(pr *www.ProposalRecord) (*www.Pr
 		pr.Username = u.Username
 	}
 
-	return pr, nil
+	return pr
 }
 
 // getProp gets the most recent verions of the given proposal from the cache
@@ -427,7 +427,7 @@ func (p *politeiawww) getProp(token string) (*www.ProposalRecord, error) {
 	}
 	pr := convertPropFromCache(*r)
 
-	return p.fillProposalMissingFields(&pr)
+	return p.fillProposalMissingFields(&pr), nil
 }
 
 // getProps returns a [token]www.ProposalRecord map for the provided list of
@@ -520,7 +520,7 @@ func (p *politeiawww) getPropVersion(token, version string) (*www.ProposalRecord
 	}
 	pr := convertPropFromCache(*r)
 
-	return p.fillProposalMissingFields(&pr)
+	return p.fillProposalMissingFields(&pr), nil
 }
 
 // getProp gets the most recent verions of the given proposal from the cache
@@ -535,7 +535,7 @@ func (p *politeiawww) getPropByPrefix(prefix string) (*www.ProposalRecord, error
 	}
 	pr := convertPropFromCache(*r)
 
-	return p.fillProposalMissingFields(&pr)
+	return p.fillProposalMissingFields(&pr), nil
 }
 
 // getAllProps gets the latest version of all proposals from the cache then
