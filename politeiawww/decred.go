@@ -386,7 +386,7 @@ func (p *politeiawww) decredLoadVoteResults(bestBlock uint64) (*decredplugin.Loa
 }
 
 // decredVersionTimestamps uses the decred plugin version timestamps command to
-// request a the timestamps for each version of a proposal.
+// request the timestamps for each version of a proposal.
 func (p *politeiawww) decredVersionTimestamps(token string) (*decredplugin.GetVersionTimestampsReply, error) {
 	bvs := decredplugin.GetVersionTimestamps{
 		Token: token,

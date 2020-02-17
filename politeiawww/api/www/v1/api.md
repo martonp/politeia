@@ -1595,7 +1595,7 @@ Reply:
 
 ```json
 {
-  "timestamps": []
+  "timestamps": [1581975919, 1581975934]
 }
 ```
 
@@ -2101,7 +2101,7 @@ author can also revoke a previously sent vote authorization.
 | action | string | The action to be executed (authorize or revoke) | Yes |
 | token | string | Proposal censorship token | Yes |
 | signature | string | Signature of the token + proposal version | Yes |
-| publickey | stng | Public key used to sign the vote | Yes |
+| publickey | string | Public key used to sign the vote | Yes |
 
 **Results (StartVoteReply):**
 

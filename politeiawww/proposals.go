@@ -807,6 +807,7 @@ func (p *politeiawww) processNewProposal(np www.NewProposal, user *user.User) (*
 	}, nil
 }
 
+// processVersionTimestamps retrieves the timestamps for each update to a proposal.
 func (p *politeiawww) processVersionTimestamps(vt www.VersionTimestamps) (*www.VersionTimestampsReply, error) {
 	log.Tracef("processVersionTimestamps")
 

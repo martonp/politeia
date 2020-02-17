@@ -274,6 +274,8 @@ func (p *politeiawww) handleProposalDetails(w http.ResponseWriter, r *http.Reque
 	util.RespondWithJSON(w, http.StatusOK, reply)
 }
 
+// handleVersionTimestamps returns the timestamps when each version of a
+// proposal was created.
 func (p *politeiawww) handleVersionTimestamps(w http.ResponseWriter, r *http.Request) {
 	log.Tracef("handleVersionTimestamps")
 
@@ -290,7 +292,7 @@ func (p *politeiawww) handleVersionTimestamps(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Reply with the proposal details.
+	// Reply with the timestamps.
 	util.RespondWithJSON(w, http.StatusOK, reply)
 }
 

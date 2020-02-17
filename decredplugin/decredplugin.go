@@ -979,14 +979,14 @@ type GetVersionTimestampsReply struct {
 	Timestamps []uint64 `json:"timestamps"`
 }
 
-// EncodeGetVersionTimestamps encodes GetVersionTimestampsReply into a JSON
-// byte slice.
+// EncodeGetVersionTimestampsReply encodes GetVersionTimestampsReply into a
+// JSON byte slice.
 func EncodeGetVersionTimestampsReply(gvtr GetVersionTimestampsReply) ([]byte, error) {
 	return json.Marshal(gvtr)
 }
 
-// DecodeGetVersionTimestamps decodes a JSON byte slice into a
-// GetVersionTimestamps.
+// DecodeGetVersionTimestampsReply decodes a JSON byte slice into a
+// GetVersionTimestampsReply.
 func DecodeGetVersionTimestampsReply(payload []byte) (*GetVersionTimestampsReply, error) {
 	var gvtr GetVersionTimestampsReply
 
