@@ -120,7 +120,6 @@ func (cmd *HelpCmd) Execute(args []string) error {
 	case "versiontimestamps":
 		fmt.Printf("%s\n", versionTimestampsHelpMsg)
 
-
 	default:
 		fmt.Printf("invalid command: use 'piwww -h' " +
 			"to view a list of valid commands\n")
