@@ -773,7 +773,7 @@ type VersionTimestamps struct {
 // VersionTimestampsReply is used to reply to a version VersionTimestamps
 // command.
 type VersionTimestampsReply struct {
-	Timestamps []uint64 `json:"timestamps"`
+	Timestamps []uint64 `json:"timestamps"` // Timestamps for each version of proposal.
 }
 
 // BatchProposals is used to request the proposal details for each of the

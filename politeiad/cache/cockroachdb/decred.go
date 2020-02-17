@@ -229,10 +229,13 @@ func (d *decred) cmdVersionTimestamps(payload string) (string, error) {
 		return "", err
 	}
 
+	// Sort the results by version
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Version < results[j].Version
 	})
 
+	// Put the timestamps into a slice. If the list of results is missing a
+	// version, we return an error.
 	timestamps := make([]uint64, 0, len(results))
 	for i := range results {
 		if results[i].Version == i+1 {
