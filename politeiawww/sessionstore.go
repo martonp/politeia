@@ -61,7 +61,7 @@ func (s *SessionStore) Get(r *http.Request, name string) (*sessions.Session, err
 //
 // This function satisfies the sessions.Store interface.
 func (s *SessionStore) New(r *http.Request, name string) (*sessions.Session, error) {
-	log.Tracef("SessStore.New: %v", name)
+	log.Errorf("SessStore.New: %v", name)
 
 	// Setup new session
 	session := sessions.NewSession(s, name)
@@ -76,6 +76,8 @@ func (s *SessionStore) New(r *http.Request, name string) (*sessions.Session, err
 		// Session cookie does not exist. Return a new session.
 		return session, nil
 	} else if err != nil {
+		log.Errorf("some shizen here")
+
 		return session, err
 	}
 
@@ -86,6 +88,8 @@ func (s *SessionStore) New(r *http.Request, name string) (*sessions.Session, err
 	// Decode session ID (overwrites existing session ID)
 	err = securecookie.DecodeMulti(name, c.Value, &session.ID, s.Codecs...)
 	if err != nil {
+		log.Errorf("could not decode")
+
 		return session, err
 	}
 
@@ -93,6 +97,7 @@ func (s *SessionStore) New(r *http.Request, name string) (*sessions.Session, err
 	userSession, err := s.db.SessionGetByID(session.ID)
 	switch err {
 	case nil:
+		log.Errorf("THERE IS NO SESSION")
 		// Session found in database. Decode database session values into
 		// the session being returned.
 		session.IsNew = false

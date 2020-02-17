@@ -50,6 +50,7 @@ notifications.  It does not render HTML.
 - [`Get comments`](#get-comments)
 - [`Like comment`](#like-comment)
 - [`Censor comment`](#censor-comment)
+- [`Version Timestamps`](#version-timestamps)
 
 
 **Error status codes**
@@ -1560,6 +1561,44 @@ Reply:
 }
 ```
 
+### `Version Timestamps`
+
+Retreive the timestamps when each version of a proposal was created.
+
+**Routes:** `GET /v1/proposals/{token}/versiontimestamps`
+
+**Params:**
+
+| Parameter | Type | Description | Required |
+|-|-|-|-|
+| token | string | Censorship token | yes |
+
+**Results:**
+
+| | Type | Description |
+|-|-|-|
+| timestamps | []number | timestamps when each version of the proposal were created |
+
+On failure the call shall return `400 Bad Request` and one of the following
+error codes:
+- [`ErrorStatusProposalNotFound`](#ErrorStatusProposalNotFound)
+
+**Example:**
+
+Request:
+
+```
+/v1/proposals/f1c2042d36c8603517cf24768b6475e18745943e4c6a20bc0001f52a2a6f9bde/versiontimestamps
+```
+
+Reply:
+
+```json
+{
+  "timestamps": []
+}
+```
+
 ### `Batch proposals`
 
 Retrieve the proposal details for a list of proposals.  This route wil not
@@ -2062,7 +2101,7 @@ author can also revoke a previously sent vote authorization.
 | action | string | The action to be executed (authorize or revoke) | Yes |
 | token | string | Proposal censorship token | Yes |
 | signature | string | Signature of the token + proposal version | Yes |
-| publickey | string | Public key used to sign the vote | Yes |
+| publickey | stng | Public key used to sign the vote | Yes |
 
 **Results (StartVoteReply):**
 
