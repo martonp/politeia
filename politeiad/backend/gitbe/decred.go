@@ -161,27 +161,19 @@ func init() {
 	}
 }
 
-func getDecredPlugin(testnet bool) backend.Plugin {
+func getDecredPlugin(dcrdata string) backend.Plugin {
 	decredPlugin := backend.Plugin{
 		ID:       decredplugin.ID,
 		Version:  decredplugin.Version,
 		Settings: []backend.PluginSetting{},
 	}
 
-	if testnet {
-		decredPlugin.Settings = append(decredPlugin.Settings,
-			backend.PluginSetting{
-				Key:   "dcrdata",
-				Value: "https://testnet.decred.org:443/",
-			},
-		)
-	} else {
-		decredPlugin.Settings = append(decredPlugin.Settings,
-			backend.PluginSetting{
-				Key:   "dcrdata",
-				Value: "https://dcrdata.decred.org:443/",
-			})
-	}
+	decredPlugin.Settings = append(decredPlugin.Settings,
+		backend.PluginSetting{
+			Key:   "dcrdata",
+			Value: dcrdata,
+		},
+	)
 
 	// This setting is used to tell politeiad how to retrieve the
 	// decred plugin data that is required to build the external
