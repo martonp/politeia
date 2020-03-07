@@ -54,6 +54,11 @@ const (
 	defaultMailAddress    = "Politeia <noreply@example.org>"
 	defaultCMSMailAddress = "Contractor Management System <noreply@example.org>"
 
+	defaultDcrdataMainnet   = "https://dcrdata.decred.org/api"
+	defaultDcrdataTestnet   = "https://testnet.decred.org/api"
+	defaultDcrdataMainnetWS = "wss://dcrdata.decred.org/ps"
+	defaultDcrdataTestnetWS = "wss://testnet.decred.org/ps"
+
 	// dust value can be found increasing the amount value until we get false
 	// from IsDustAmount function. Amounts can not be lower than dust
 	// func IsDustAmount(amount int64, relayFeePerKb int64) bool {
@@ -109,6 +114,8 @@ type config struct {
 	HTTPSKey                 string `long:"httpskey" description:"File containing the https certificate key"`
 	RPCHost                  string `long:"rpchost" description:"Host for politeiad in this format"`
 	RPCCert                  string `long:"rpccert" description:"File containing the https certificate file"`
+	DcrdataHost              string `long:"dcrdatahost" description:"Host for dcrdata http connection"`
+	DcrdataWSHost            string `long:"dcrdatawshost" description:"Host for dcrdata websocket connection"`
 	RPCIdentityFile          string `long:"rpcidentityfile" description:"Path to file containing the politeiad identity"`
 	Identity                 *identity.PublicIdentity
 	RPCUser                  string `long:"rpcuser" description:"RPC user name for privileged commands"`
@@ -726,6 +733,22 @@ func loadConfig() (*config, []string, error) {
 		if cfg.MinConfirmationsRequired != defaultPaywallMinConfirmations {
 			return nil, nil, fmt.Errorf("[ERR]: Can not change min block " +
 				"confirmations when in mainnet")
+		}
+	}
+
+	// Setup dcrdata addresses
+	if cfg.DcrdataHost == "" {
+		if cfg.TestNet {
+			cfg.DcrdataHost = defaultDcrdataTestnet
+		} else {
+			cfg.DcrdataHost = defaultDcrdataMainnet
+		}
+	}
+	if cfg.DcrdataWSHost == "" {
+		if cfg.TestNet {
+			cfg.DcrdataWSHost = defaultDcrdataTestnetWS
+		} else {
+			cfg.DcrdataWSHost = defaultDcrdataMainnetWS
 		}
 	}
 
