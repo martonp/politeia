@@ -27,7 +27,6 @@ import (
 	database "github.com/decred/politeia/politeiawww/cmsdatabase"
 	cmsdb "github.com/decred/politeia/politeiawww/cmsdatabase/cockroachdb"
 	"github.com/decred/politeia/politeiawww/sharedconfig"
-	utilwww "github.com/decred/politeia/politeiawww/util"
 	"github.com/decred/politeia/util"
 )
 
@@ -262,7 +261,7 @@ func _main() error {
 			if len(txs) > 1 {
 				paymentReceived := uint64(0)
 				for i, txid := range txs {
-					tx, err := utilwww.FetchTx(payment.Address, txid, dcrdataURL)
+					tx, err := util.FetchTx(payment.Address, txid, dcrdataURL)
 					if err != nil {
 						fmt.Printf("error fetching txid %v %v\n", txid, err)
 						break

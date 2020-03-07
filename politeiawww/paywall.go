@@ -10,7 +10,7 @@ import (
 
 	www "github.com/decred/politeia/politeiawww/api/www/v1"
 	"github.com/decred/politeia/politeiawww/user"
-	utilwww "github.com/decred/politeia/politeiawww/util"
+	"github.com/decred/politeia/util"
 	"github.com/google/uuid"
 )
 
@@ -205,7 +205,7 @@ func (p *politeiawww) generateProposalPaywall(u *user.User) (*user.ProposalPaywa
 // verifyPropoposalPayment checks whether a payment has been sent to the
 // user's proposal paywall address. Proposal credits are created and added to
 // the user's account if the payment meets the minimum requirements.
-func (p *politeiawww) verifyProposalPayment(u *user.User) (*utilwww.TxDetails, error) {
+func (p *politeiawww) verifyProposalPayment(u *user.User) (*util.TxDetails, error) {
 	paywall := p.mostRecentProposalPaywall(u)
 
 	// If a TxID exists, the payment has already been verified.
@@ -214,7 +214,7 @@ func (p *politeiawww) verifyProposalPayment(u *user.User) (*utilwww.TxDetails, e
 	}
 
 	// Fetch txs sent to paywall address
-	txs, err := utilwww.FetchTxsForAddress(paywall.Address, p.cfg.DcrdataHost)
+	txs, err := util.FetchTxsForAddress(paywall.Address, p.cfg.DcrdataHost)
 	if err != nil {
 		return nil, fmt.Errorf("FetchTxsForAddress %v: %v",
 			paywall.Address, err)

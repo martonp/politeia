@@ -566,7 +566,7 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	if len(cfg.DcrdataHost) == 0 {
-		if (cfg.TestNet) {
+		if cfg.TestNet {
 			cfg.DcrdataHost = defaultTestnetDcrdata
 		} else {
 			cfg.DcrdataHost = defaultMainnetDcrdata

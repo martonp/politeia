@@ -16,7 +16,6 @@ import (
 	"github.com/decred/politeia/decredplugin"
 	v1 "github.com/decred/politeia/politeiawww/api/www/v1"
 	"github.com/decred/politeia/politeiawww/cmd/shared"
-	utilwww "github.com/decred/politeia/politeiawww/util"
 	"github.com/decred/politeia/util"
 )
 
@@ -210,7 +209,7 @@ func (cmd *TestRunCmd) Execute(args []string) error {
 
 		// Pay user registration fee
 		fmt.Printf("  Paying user registration fee\n")
-		txID, err := utilwww.PayWithTestnetFaucet(cfg.FaucetHost,
+		txID, err := util.PayWithTestnetFaucet(cfg.FaucetHost,
 			lr.PaywallAddress, lr.PaywallAmount, "")
 		if err != nil {
 			return err
@@ -263,7 +262,7 @@ func (cmd *TestRunCmd) Execute(args []string) error {
 		fmt.Printf("  Purchasing %v proposal credits\n", numCredits)
 
 		atoms := ppdr.CreditPrice * uint64(numCredits)
-		txID, err := utilwww.PayWithTestnetFaucet(cfg.FaucetHost,
+		txID, err := util.PayWithTestnetFaucet(cfg.FaucetHost,
 			ppdr.PaywallAddress, atoms, "")
 		if err != nil {
 			return err

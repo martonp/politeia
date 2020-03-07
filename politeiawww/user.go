@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/decred/politeia/politeiad/api/v1/identity"
-	utilwww "github.com/decred/politeia/politeiawww/util"
 
 	www "github.com/decred/politeia/politeiawww/api/www/v1"
 	"github.com/decred/politeia/politeiawww/user"
@@ -1888,7 +1887,7 @@ func (p *politeiawww) processUserPaymentsRescan(upr www.UserPaymentsRescan) (*ww
 	}
 
 	// Fetch user payments
-	payments, err := utilwww.FetchTxsForAddressNotBefore(u.NewUserPaywallAddress,
+	payments, err := util.FetchTxsForAddressNotBefore(u.NewUserPaywallAddress,
 		u.NewUserPaywallTxNotBefore, p.cfg.DcrdataHost)
 	if err != nil {
 		return nil, fmt.Errorf("FetchTxsForAddressNotBefore: %v", err)
@@ -2037,7 +2036,7 @@ func (p *politeiawww) processVerifyUserPayment(u *user.User, vupt www.VerifyUser
 		return &reply, nil
 	}
 
-	tx, _, err := utilwww.FetchTxWithBlockExplorers(u.NewUserPaywallAddress,
+	tx, _, err := util.FetchTxWithBlockExplorers(u.NewUserPaywallAddress,
 		u.NewUserPaywallAmount, u.NewUserPaywallTxNotBefore,
 		p.cfg.MinConfirmationsRequired, p.cfg.DcrdataHost)
 	if err != nil {
@@ -2154,7 +2153,7 @@ func (p *politeiawww) updateUserAsPaid(u *user.User, tx string) error {
 
 // derivePaywallInfo derives a new paywall address for the user.
 func (p *politeiawww) derivePaywallInfo(u *user.User) (string, uint64, int64, error) {
-	address, err := utilwww.DerivePaywallAddress(p.params,
+	address, err := util.DerivePaywallAddress(p.params,
 		p.cfg.PaywallXpub, uint32(u.PaywallAddressIndex))
 	if err != nil {
 		err = fmt.Errorf("Unable to derive paywall address #%v "+
@@ -2221,7 +2220,7 @@ func (p *politeiawww) checkForUserPayments(pool map[uuid.UUID]paywallPoolMember)
 			continue
 		}
 
-		tx, _, err := utilwww.FetchTxWithBlockExplorers(poolMember.address,
+		tx, _, err := util.FetchTxWithBlockExplorers(poolMember.address,
 			poolMember.amount, poolMember.txNotBefore,
 			p.cfg.MinConfirmationsRequired, p.cfg.DcrdataHost)
 		if err != nil {
