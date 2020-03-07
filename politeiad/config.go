@@ -88,7 +88,7 @@ type config struct {
 	BuildCache    bool   `long:"buildcache" description:"Build the cache from scratch"`
 	Identity      string `long:"identity" description:"File containing the politeiad identity file"`
 	GitTrace      bool   `long:"gittrace" description:"Enable git tracing in logs"`
-	DcrdataHost   string `long:"dcrdatahost" description"Dcrdata ip:port"`
+	DcrdataHost   string `long:"dcrdatahost" description:"Dcrdata ip:port"`
 }
 
 // serviceOptions defines the configuration options for the daemon as a service
