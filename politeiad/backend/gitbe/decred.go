@@ -161,7 +161,7 @@ func init() {
 	}
 }
 
-func getDecredPlugin(dcrdata string) backend.Plugin {
+func getDecredPlugin(dcrdataHost string) backend.Plugin {
 	decredPlugin := backend.Plugin{
 		ID:       decredplugin.ID,
 		Version:  decredplugin.Version,
@@ -171,7 +171,7 @@ func getDecredPlugin(dcrdata string) backend.Plugin {
 	decredPlugin.Settings = append(decredPlugin.Settings,
 		backend.PluginSetting{
 			Key:   "dcrdata",
-			Value: dcrdata,
+			Value: dcrdataHost,
 		},
 	)
 

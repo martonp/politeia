@@ -169,17 +169,17 @@ func _main() error {
 	var err error
 	var network string
 	var rpcPort string
-	var dcrdataURL string
+	var dcrdataHost string
 	if *testnet {
 		network = "testnet3"
 		// Only set to testnet port if no rpc port flag set
 		if rpcPort != pd.DefaultMainnetPort {
 			rpcPort = pd.DefaultTestnetPort
 		}
-		dcrdataURL = dcrdataTestnet
+		dcrdataHost = dcrdataTestnet
 	} else {
 		network = "mainnet"
-		dcrdataURL = dcrdataMainnet
+		dcrdataHost = dcrdataMainnet
 	}
 
 	dataDir := util.CleanAndExpandPath(*dataDir)
@@ -261,7 +261,7 @@ func _main() error {
 			if len(txs) > 1 {
 				paymentReceived := uint64(0)
 				for i, txid := range txs {
-					tx, err := util.FetchTx(payment.Address, txid, dcrdataURL)
+					tx, err := util.FetchTx(payment.Address, txid, dcrdataHost)
 					if err != nil {
 						fmt.Printf("error fetching txid %v %v\n", txid, err)
 						break

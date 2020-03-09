@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/decred/politeia/politeiad/api/v1/identity"
-
 	www "github.com/decred/politeia/politeiawww/api/www/v1"
 	"github.com/decred/politeia/politeiawww/user"
 	"github.com/decred/politeia/util"
