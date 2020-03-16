@@ -378,7 +378,7 @@ func (g *gitBackEnd) verifyMessage(address, message, signature string) (bool, er
 }
 
 func bestBlock() (*dcrdataapi.BlockDataBasic, error) {
-	url := decredPluginSettings["dcrdata"] + "api/block/best"
+	url := decredPluginSettings["dcrdata"] + "/api/block/best"
 	log.Debugf("connecting to %v", url)
 	// XXX this http command needs a reasonable timeout.
 	r, err := http.Get(url)
@@ -409,7 +409,7 @@ func bestBlock() (*dcrdataapi.BlockDataBasic, error) {
 
 func block(block uint32) (*dcrdataapi.BlockDataBasic, error) {
 	h := strconv.FormatUint(uint64(block), 10)
-	url := decredPluginSettings["dcrdata"] + "api/block/" + h
+	url := decredPluginSettings["dcrdata"] + "/api/block/" + h
 	log.Debugf("connecting to %v", url)
 	r, err := http.Get(url)
 	if err != nil {
@@ -437,7 +437,7 @@ func block(block uint32) (*dcrdataapi.BlockDataBasic, error) {
 }
 
 func snapshot(hash string) ([]string, error) {
-	url := decredPluginSettings["dcrdata"] + "api/stake/pool/b/" + hash +
+	url := decredPluginSettings["dcrdata"] + "/api/stake/pool/b/" + hash +
 		"/full?sort=true"
 	log.Debugf("connecting to %v", url)
 	r, err := http.Get(url)
@@ -475,7 +475,7 @@ func batchTransactions(hashes []string) ([]dcrdataapi.TrimmedTx, error) {
 	}
 
 	// Make the POST request
-	url := decredPluginSettings["dcrdata"] + "api/txs/trimmed"
+	url := decredPluginSettings["dcrdata"] + "/api/txs/trimmed"
 	log.Debugf("connecting to %v", url)
 	r, err := http.Post(url, "application/json; charset=utf-8",
 		bytes.NewReader(reqBody))

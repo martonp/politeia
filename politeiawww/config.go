@@ -114,8 +114,8 @@ type config struct {
 	HTTPSKey                 string `long:"httpskey" description:"File containing the https certificate key"`
 	RPCHost                  string `long:"rpchost" description:"Host for politeiad in this format"`
 	RPCCert                  string `long:"rpccert" description:"File containing the https certificate file"`
-	DcrdataHost              string `long:"dcrdatahost" description:"Host for dcrdata http connection"`
-	DcrdataWSHost            string `long:"dcrdatawshost" description:"Host for dcrdata websocket connection"`
+	DcrdataUrl               string `long:"dcrdataurl" description:"URL for dcrdata http API"`
+	DcrdataWsUrl             string `long:"dcrdatawsurl" description:"URL for dcrdata websocket connection"`
 	RPCIdentityFile          string `long:"rpcidentityfile" description:"Path to file containing the politeiad identity"`
 	Identity                 *identity.PublicIdentity
 	RPCUser                  string `long:"rpcuser" description:"RPC user name for privileged commands"`
@@ -737,18 +737,18 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	// Setup dcrdata addresses
-	if cfg.DcrdataHost == "" {
+	if cfg.DcrdataUrl == "" {
 		if cfg.TestNet {
-			cfg.DcrdataHost = defaultDcrdataTestnet
+			cfg.DcrdataUrl = defaultDcrdataTestnet
 		} else {
-			cfg.DcrdataHost = defaultDcrdataMainnet
+			cfg.DcrdataUrl = defaultDcrdataMainnet
 		}
 	}
-	if cfg.DcrdataWSHost == "" {
+	if cfg.DcrdataWsUrl == "" {
 		if cfg.TestNet {
-			cfg.DcrdataWSHost = defaultDcrdataTestnetWS
+			cfg.DcrdataWsUrl = defaultDcrdataTestnetWS
 		} else {
-			cfg.DcrdataWSHost = defaultDcrdataMainnetWS
+			cfg.DcrdataWsUrl = defaultDcrdataMainnetWS
 		}
 	}
 

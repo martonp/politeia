@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/decred/dcrtime/api/v1"
+	v1 "github.com/decred/dcrtime/api/v1"
 	"github.com/decred/politeia/politeiad/sharedconfig"
 	"github.com/decred/politeia/util"
 	"github.com/decred/politeia/util/version"
@@ -39,8 +39,8 @@ const (
 	defaultMainnetPort = "49374"
 	defaultTestnetPort = "59374"
 
-	defaultMainnetDcrdata = "https://dcrdata.decred.org:443/"
-	defaultTestnetDcrdata = "https://testnet.decred.org:443/"
+	defaultMainnetDcrdata = "https://dcrdata.decred.org:443"
+	defaultTestnetDcrdata = "https://testnet.decred.org:443"
 )
 
 var (
