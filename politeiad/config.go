@@ -39,8 +39,8 @@ const (
 	defaultMainnetPort = "49374"
 	defaultTestnetPort = "59374"
 
-	defaultMainnetDcrdata = "https://dcrdata.decred.org:443"
-	defaultTestnetDcrdata = "https://testnet.decred.org:443"
+	defaultMainnetDcrdata = "dcrdata.decred.org:443"
+	defaultTestnetDcrdata = "testnet.decred.org:443"
 )
 
 var (
@@ -545,6 +545,16 @@ func loadConfig() (*config, []string, error) {
 	// duplicate addresses.
 	cfg.Listeners = normalizeAddresses(cfg.Listeners, port)
 
+	if len(cfg.DcrdataHost) == 0 {
+		if cfg.TestNet {
+			cfg.DcrdataHost = defaultTestnetDcrdata
+		} else {
+			cfg.DcrdataHost = defaultMainnetDcrdata
+		}
+	}
+
+	cfg.DcrdataHost = "https://" + cfg.DcrdataHost
+
 	if cfg.TestNet {
 		var timeHost string
 		if len(cfg.DcrtimeHost) == 0 {
@@ -563,14 +573,6 @@ func loadConfig() (*config, []string, error) {
 		}
 		cfg.DcrtimeHost = util.NormalizeAddress(timeHost,
 			v1.DefaultMainnetTimePort)
-	}
-
-	if len(cfg.DcrdataHost) == 0 {
-		if cfg.TestNet {
-			cfg.DcrdataHost = defaultTestnetDcrdata
-		} else {
-			cfg.DcrdataHost = defaultMainnetDcrdata
-		}
 	}
 
 	cfg.DcrtimeHost = "https://" + cfg.DcrtimeHost

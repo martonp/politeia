@@ -54,10 +54,8 @@ const (
 	defaultMailAddress    = "Politeia <noreply@example.org>"
 	defaultCMSMailAddress = "Contractor Management System <noreply@example.org>"
 
-	defaultDcrdataMainnet   = "https://dcrdata.decred.org/api"
-	defaultDcrdataTestnet   = "https://testnet.decred.org/api"
-	defaultDcrdataMainnetWS = "wss://dcrdata.decred.org/ps"
-	defaultDcrdataTestnetWS = "wss://testnet.decred.org/ps"
+	defaultDcrdataHostMainnet = "dcrdata.decred.org:443"
+	defaultDcrdataHostTestnet = "testnet.decred.org:443"
 
 	// dust value can be found increasing the amount value until we get false
 	// from IsDustAmount function. Amounts can not be lower than dust
@@ -114,8 +112,7 @@ type config struct {
 	HTTPSKey                 string `long:"httpskey" description:"File containing the https certificate key"`
 	RPCHost                  string `long:"rpchost" description:"Host for politeiad in this format"`
 	RPCCert                  string `long:"rpccert" description:"File containing the https certificate file"`
-	DcrdataUrl               string `long:"dcrdataurl" description:"URL for dcrdata http API"`
-	DcrdataWsUrl             string `long:"dcrdatawsurl" description:"URL for dcrdata websocket connection"`
+	DcrdataHost              string `long:"dcrdatahost" description:"Dcrdata ip:port"`
 	RPCIdentityFile          string `long:"rpcidentityfile" description:"Path to file containing the politeiad identity"`
 	Identity                 *identity.PublicIdentity
 	RPCUser                  string `long:"rpcuser" description:"RPC user name for privileged commands"`
@@ -737,18 +734,11 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	// Setup dcrdata addresses
-	if cfg.DcrdataUrl == "" {
+	if cfg.DcrdataHost == "" {
 		if cfg.TestNet {
-			cfg.DcrdataUrl = defaultDcrdataTestnet
+			cfg.DcrdataHost = defaultDcrdataHostTestnet
 		} else {
-			cfg.DcrdataUrl = defaultDcrdataMainnet
-		}
-	}
-	if cfg.DcrdataWsUrl == "" {
-		if cfg.TestNet {
-			cfg.DcrdataWsUrl = defaultDcrdataTestnetWS
-		} else {
-			cfg.DcrdataWsUrl = defaultDcrdataMainnetWS
+			cfg.DcrdataHost = defaultDcrdataHostMainnet
 		}
 	}
 
@@ -867,4 +857,12 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	return &cfg, remainingArgs, nil
+}
+
+func (p *politeiawww) dcrdataHttpApi() string {
+	return fmt.Sprintf("https://%v/api", p.cfg.DcrdataHost)
+}
+
+func (p *politeiawww) dcrdataWsApi() string {
+	return fmt.Sprintf("wss://%v/ps", p.cfg.DcrdataHost)
 }
