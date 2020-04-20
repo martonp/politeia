@@ -9,14 +9,14 @@ import (
 )
 
 // ProposalTimelineCmd retrieves a timeline of events related to the
-// lifecycle of a proposal.
+// history of a proposal.
 type ProposalTimelineCmd struct {
 	Args struct {
 		Token string `positional-arg-name:"token" required:"true"` // Censorship token
 	} `positional-args:"true"`
 }
 
-// Execute executes the version timestamps command
+// Execute executes the proposal timeline command
 func (cmd *ProposalTimelineCmd) Execute(args []string) error {
 	// Get timestamps
 	vtsr, err := client.ProposalTimeline(cmd.Args.Token)

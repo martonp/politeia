@@ -822,7 +822,7 @@ func (c *Client) ProposalDetails(token string, pd *www.ProposalsDetails) (*www.P
 	return &pr, nil
 }
 
-// ProposalTimeline retrieves a timeline of events in the lifecycle of a
+// ProposalTimeline retrieves a timeline of events in the history of a
 // proposal.
 func (c *Client) ProposalTimeline(token string) (*www.ProposalTimelineReply, error) {
 	route := "/proposals/" + token + "/timeline"

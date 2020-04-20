@@ -955,7 +955,8 @@ type GetProposalTimeline struct {
 	Token string `json:"token"`
 }
 
-// EncodeGetProposalTimeline encodes GetProposalTimeline into a JSON byte slice.
+// EncodeGetProposalTimeline encodes GetProposalTimeline into a JSON byte
+// slice.
 func EncodeGetProposalTimeline(gpt GetProposalTimeline) ([]byte, error) {
 	return json.Marshal(gpt)
 }
@@ -988,7 +989,7 @@ type VersionTimestamp struct {
 	Authorized *VoteAuthorizationTimestamp `json:"authorized,omitempty"`
 }
 
-// GetProposalTimelineReply returns the timestamps forevents in the history of
+// GetProposalTimelineReply returns the timestamps for events in the history of
 // a proposal.
 type GetProposalTimelineReply struct {
 	VersionTimestamps []VersionTimestamp `json:"versionTimestamps"`
@@ -996,7 +997,7 @@ type GetProposalTimelineReply struct {
 	EndVoteBlock      uint32             `json:"endVoteBlock,omitempty"`
 }
 
-// EncodeGetProposalTimelineReply encodes GetVersionTimestampsReply into a
+// EncodeGetProposalTimelineReply encodes GetProposalTimelineReply into a
 // JSON byte slice.
 func EncodeGetProposalTimelineReply(gptr GetProposalTimelineReply) ([]byte, error) {
 	return json.Marshal(gptr)

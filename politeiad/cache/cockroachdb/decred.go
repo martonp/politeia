@@ -194,9 +194,9 @@ func (d *decred) getVoteStartEndBlock(token string) (uint32, uint32) {
 }
 
 // cmdProposalTimeline queries the cache for a timeline important events
-// in the lifecycle of a proposal.
+// in the history of a proposal.
 func (d *decred) cmdProposalTimeline(payload string) (string, error) {
-	log.Errorf("decred cmdProposalTimeline %v", payload)
+	log.Tracef("decred cmdProposalTimeline %v", payload)
 
 	gpt, err := decredplugin.DecodeGetProposalTimeline([]byte(payload))
 	if err != nil {
@@ -204,7 +204,6 @@ func (d *decred) cmdProposalTimeline(payload string) (string, error) {
 	}
 
 	reply := decredplugin.GetProposalTimelineReply{}
-
 	{
 		// Get timestamps when each version of a proposal was created.
 		ct, err := d.getProposalVersionCreationTimestamps(gpt.Token)

@@ -1563,7 +1563,7 @@ Reply:
 
 ### `Proposal Timeline`
 
-Retreive a timeline of events in the lifecycle of a proposal.
+Retreive a timeline of events in the history of a proposal.
 
 **Routes:** `GET /v1/proposals/{token}/timelin`
 
@@ -1577,7 +1577,9 @@ Retreive a timeline of events in the lifecycle of a proposal.
 
 | | Type | Description |
 |-|-|-|
-| timestamps | []number | timestamps when each version of the proposal were created |
+| versionTimestamps | [] [`Version Timestamps`](#version-timestamps) | timestamps related to each version of the proposal |
+| startVoteBlock | uint64 | block height of start of voting period |
+| endVoteBlock | uint64 | block height of end of voting period |
 
 On failure the call shall return `400 Bad Request` and one of the following
 error codes:
@@ -2869,6 +2871,21 @@ This is a shortened representation of a user, used for lists.
 | quorumpercentage | uint32 | Percent of eligible votes required for quorum |
 | passpercentage | uint32 | Percent of total votes required to pass |
 | optionsresult | array of VoteOptionResult | Option description along with the number of votes it has received |
+
+### `Vote Authorization`
+
+| | Type | Description |
+|-|-|-|
+| timestamp | uint64 | Timestamp of vote authorization |
+| action | string | Authorized or Revoked |
+
+### `Version Timestamps`
+
+| | Type | Description |
+|-|-|-|
+| created | uint64 | Timestamp when version was created |
+| vetted | uint64 | Timestamp when version was vetted by an admin |
+| authorized | [`Vote Authorization`](#vote-authorization) | Details of creator authorizing a vote on this version |
 
 ### `Censorship record`
 

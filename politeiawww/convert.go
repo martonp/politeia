@@ -63,10 +63,7 @@ func convertBallotReplyFromDecredPlugin(b decredplugin.BallotReply) www.BallotRe
 
 func convertVersionTimestampFromDecredPlugin(vt decredplugin.VersionTimestamp) www.VersionTimestamp {
 	var authorized *www.VoteAuthorizationTimestamp
-
 	if vt.Authorized != nil {
-		log.Errorf("%v\n", *vt.Authorized)
-
 		authorized = &www.VoteAuthorizationTimestamp{
 			Timestamp: vt.Authorized.Timestamp,
 			Action:    vt.Authorized.Action,

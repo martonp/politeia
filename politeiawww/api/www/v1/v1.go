@@ -773,24 +773,24 @@ type ProposalTimeline struct {
 // VoteAuthorizationTimestamp contains the timestamp and whether vote
 // authorization was revoked.
 type VoteAuthorizationTimestamp struct {
-	Action    string `json:"action"`
-	Timestamp uint64 `json:"timestamp"`
+	Action    string `json:"action"`    // Authorized of revoked
+	Timestamp uint64 `json:"timestamp"` // Time when creator authorized or revoked
 }
 
 // VersionTimestamp contains the timestamps of events related to a version of
 // a proposal.
 type VersionTimestamp struct {
-	Created    uint64                      `json:"created"`
-	Vetted     uint64                      `json:"vetted,omitempty"`
-	Authorized *VoteAuthorizationTimestamp `json:"authorized,omitempty"`
+	Created    uint64                      `json:"created"`              // Time when version was created
+	Vetted     uint64                      `json:"vetted,omitempty"`     // Time when admin vetted version
+	Authorized *VoteAuthorizationTimestamp `json:"authorized,omitempty"` // Information about vote authoriztion
 }
 
 // ProposalTimelineReply is used to reply to a version ProposalTimeline
 // command.
 type ProposalTimelineReply struct {
-	VersionTimestamps []VersionTimestamp `json:"versionTimestamps"`
-	StartVoteBlock    uint32             `json:"startVoteBlock,omitempty"`
-	EndVoteBlock      uint32             `json:"endVoteBlock,omitempty"`
+	VersionTimestamps []VersionTimestamp `json:"versionTimestamps"`        // Timestamps related to each version
+	StartVoteBlock    uint32             `json:"startVoteBlock,omitempty"` // Block height of start of voting period
+	EndVoteBlock      uint32             `json:"endVoteBlock,omitempty"`   // Block height of end of voting period
 }
 
 // BatchProposals is used to request the proposal details for each of the
