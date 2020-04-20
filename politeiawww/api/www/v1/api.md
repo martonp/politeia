@@ -50,6 +50,7 @@ notifications.  It does not render HTML.
 - [`Get comments`](#get-comments)
 - [`Like comment`](#like-comment)
 - [`Censor comment`](#censor-comment)
+- [`Proposal Timeline`](#proposal-timeline)
 
 
 **Error status codes**
@@ -1557,6 +1558,75 @@ Reply:
       "signature": "f5ea17d547d8347a2f2d77edcb7e89fcc96613d7aaff1f2a26761779763d77688b57b423f1e7d2da8cd433ef2cfe6f58c7cf1c43065fa6716a03a3726d902d0a"
     }
   }
+}
+```
+
+### `Proposal Timeline`
+
+Retreive a timeline of events in the lifecycle of a proposal.
+
+**Routes:** `GET /v1/proposals/{token}/timelin`
+
+**Params:**
+
+| Parameter | Type | Description | Required |
+|-|-|-|-|
+| token | string | Censorship token | yes |
+
+**Results:**
+
+| | Type | Description |
+|-|-|-|
+| timestamps | []number | timestamps when each version of the proposal were created |
+
+On failure the call shall return `400 Bad Request` and one of the following
+error codes:
+- [`ErrorStatusProposalNotFound`](#ErrorStatusProposalNotFound)
+
+**Example:**
+
+Request:
+
+```
+/v1/proposals/f1c2042d36c8603517cf24768b6475e18745943e4c6a20bc0001f52a2a6f9bde/timeline
+```
+
+Reply:
+
+```json
+{
+  "versionTimestamps": [
+    {
+      "created": 1586712239,
+      "vetted": 1586712247,
+      "authorized": {
+        "action": "revoke",
+        "timestamp": 1586712262
+      }
+    },
+    {
+      "created": 1586712271,
+      "vetted": 1586712247
+    },
+    {
+      "created": 1586712279,
+      "vetted": 1586712247,
+      "authorized": {
+        "action": "revoke",
+        "timestamp": 1586712308
+      }
+    },
+    {
+      "created": 1586712313,
+      "vetted": 1586712247,
+      "authorized": {
+        "action": "authorize",
+        "timestamp": 1586712319
+      }
+    }
+  ],
+  "startVoteBlock": 401918,
+  "endVoteBlock": 403950
 }
 ```
 

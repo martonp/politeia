@@ -65,6 +65,7 @@ const (
 	RouteCommentsGet              = "/proposals/{token:[A-z0-9]{64}}/comments"
 	RouteVoteResults              = "/proposals/{token:[A-z0-9]{64}}/votes"
 	RouteVoteStatus               = "/proposals/{token:[A-z0-9]{64}}/votestatus"
+	RouteProposalTimeline         = "/proposals/{token:[A-z0-9]{64}}/timeline"
 	RouteNewComment               = "/comments/new"
 	RouteLikeComment              = "/comments/like"
 	RouteCensorComment            = "/comments/censor"
@@ -761,6 +762,35 @@ type ProposalsDetails struct {
 // ProposalDetailsReply is used to reply to a proposal details command.
 type ProposalDetailsReply struct {
 	Proposal ProposalRecord `json:"proposal"`
+}
+
+// ProposalTimeline is used to retrieve the timeline of events
+// related to a proposal.
+type ProposalTimeline struct {
+	Token string `json:"token"` // Censorship token
+}
+
+// VoteAuthorizationTimestamp contains the timestamp and whether vote
+// authorization was revoked.
+type VoteAuthorizationTimestamp struct {
+	Action    string `json:"action"`
+	Timestamp uint64 `json:"timestamp"`
+}
+
+// VersionTimestamp contains the timestamps of events related to a version of
+// a proposal.
+type VersionTimestamp struct {
+	Created    uint64                      `json:"created"`
+	Vetted     uint64                      `json:"vetted,omitempty"`
+	Authorized *VoteAuthorizationTimestamp `json:"authorized,omitempty"`
+}
+
+// ProposalTimelineReply is used to reply to a version ProposalTimeline
+// command.
+type ProposalTimelineReply struct {
+	VersionTimestamps []VersionTimestamp `json:"versionTimestamps"`
+	StartVoteBlock    uint32             `json:"startVoteBlock,omitempty"`
+	EndVoteBlock      uint32             `json:"endVoteBlock,omitempty"`
 }
 
 // BatchProposals is used to request the proposal details for each of the
