@@ -62,52 +62,6 @@ func convertBallotReplyFromDecredPlugin(b decredplugin.BallotReply) www.BallotRe
 	return br
 }
 
-func convertVersionTimestampFromDecredPlugin(vt decredplugin.VersionTimestamp) www.VersionTimestamp {
-	var authorized *www.VoteAuthorizationTimestamp
-	if vt.Authorized != nil {
-		authorized = &www.VoteAuthorizationTimestamp{
-			Timestamp: vt.Authorized.Timestamp,
-			Action:    vt.Authorized.Action,
-		}
-	}
-
-	return www.VersionTimestamp{
-		Created:    vt.Created,
-		Vetted:     vt.Vetted,
-		Authorized: authorized,
-	}
-}
-
-func convertLinkingTimestampFromDecredPlugin(lt decredplugin.LinkingTimestamp) www.LinkingTimestamp {
-	return www.LinkingTimestamp{
-		Token:     lt.Token,
-		Timestamp: lt.Timestamp,
-	}
-}
-
-func convertProposalTimelineReplyFromDecredPlugin(p decredplugin.GetProposalTimelineReply) www.ProposalTimelineReply {
-	ptr := www.ProposalTimelineReply{
-		VersionTimestamps: make([]www.VersionTimestamp, 0,
-			len(p.VersionTimestamps)),
-		LinkingTimestamps: make([]www.LinkingTimestamp, 0,
-			len(p.LinkingTimestamps)),
-		StartVoteBlock: p.StartVoteBlock,
-		EndVoteBlock:   p.EndVoteBlock,
-	}
-
-	for _, vt := range p.VersionTimestamps {
-		ptr.VersionTimestamps = append(ptr.VersionTimestamps,
-			convertVersionTimestampFromDecredPlugin(vt))
-	}
-
-	for _, lt := range p.LinkingTimestamps {
-		ptr.LinkingTimestamps = append(ptr.LinkingTimestamps,
-			convertLinkingTimestampFromDecredPlugin(lt))
-	}
-
-	return ptr
-}
-
 func convertAuthorizeVoteToDecred(av www.AuthorizeVote) decredplugin.AuthorizeVote {
 	return decredplugin.AuthorizeVote{
 		Action:    av.Action,
@@ -407,12 +361,18 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 		pubkey string
 		sig    string
 
+		publishedAt     int64
+		authorizedAt    *www.VoteAuthorizationTimestamp
+		startVoteHeight int64
+		endVoteHeight   int64
+
 		statusesV1 []mdstream.RecordStatusChangeV1
 		statusesV2 []mdstream.RecordStatusChangeV2
 		err        error
 
 		token = r.CensorshipRecord.Token
 	)
+
 	for _, ms := range r.Metadata {
 		switch ms.ID {
 		case mdstream.IDProposalGeneral:
@@ -431,6 +391,8 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 				name = pg.Name
 				pubkey = pg.PublicKey
 				sig = pg.Signature
+				publishedAt = pg.Timestamp
+
 			case 2:
 				pg, err := mdstream.DecodeProposalGeneralV2([]byte(ms.Payload))
 				if err != nil {
@@ -438,6 +400,8 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 				}
 				pubkey = pg.PublicKey
 				sig = pg.Signature
+				publishedAt = pg.Timestamp
+
 			default:
 				return nil, fmt.Errorf("unknown ProposalGeneral version %v", ms)
 			}
@@ -460,17 +424,26 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 			}
 
 		case decredplugin.MDStreamAuthorizeVote:
-			// Valid proposal mdstream but not needed for a ProposalRecord
-			log.Tracef("convertPropFromCache: skipping mdstream %v",
-				decredplugin.MDStreamAuthorizeVote)
+			av, err := decredplugin.DecodeAuthorizeVote([]byte(ms.Payload))
+			if err != nil {
+				return nil, fmt.Errorf("DecodeAuthorizeVote: %v", err)
+			}
+			authorizedAt = &www.VoteAuthorizationTimestamp{
+				Action:    av.Action,
+				Timestamp: uint64(av.Timestamp),
+			}
 		case decredplugin.MDStreamVoteBits:
 			// Valid proposal mdstream but not needed for a ProposalRecord
 			log.Tracef("convertPropFromCache: skipping mdstream %v",
 				decredplugin.MDStreamVoteBits)
 		case decredplugin.MDStreamVoteSnapshot:
-			// Valid proposal mdstream but not needed for a ProposalRecord
-			log.Tracef("convertPropFromCache: skipping mdstream %v",
-				decredplugin.MDStreamVoteSnapshot)
+			sv, err := decredplugin.DecodeStartVoteReply([]byte(ms.Payload))
+			if err != nil {
+				return nil, fmt.Errorf("DecodeStartVoteReply: %v", err)
+			}
+			startVoteHeight, _ = strconv.ParseInt(sv.StartBlockHeight, 0, 64)
+			endVoteHeight, _ = strconv.ParseInt(sv.EndHeight, 0, 64)
+
 		default:
 			return nil, fmt.Errorf("invalid mdstream: %v", ms)
 		}
@@ -480,9 +453,9 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 	var (
 		changeMsg          string
 		changeMsgTimestamp int64
-		publishedAt        int64
 		censoredAt         int64
 		abandonedAt        int64
+		vettedAt           int64
 	)
 	for _, v := range statusesV1 {
 		// Keep the most recent status change message. This is what
@@ -494,7 +467,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 
 		switch convertPropStatusFromPD(v.NewStatus) {
 		case www.PropStatusPublic:
-			publishedAt = v.Timestamp
+			vettedAt = v.Timestamp
 		case www.PropStatusCensored:
 			censoredAt = v.Timestamp
 		case www.PropStatusAbandoned:
@@ -511,7 +484,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 
 		switch convertPropStatusFromPD(v.NewStatus) {
 		case www.PropStatusPublic:
-			publishedAt = v.Timestamp
+			vettedAt = v.Timestamp
 		case www.PropStatusCensored:
 			censoredAt = v.Timestamp
 		case www.PropStatusAbandoned:
@@ -576,7 +549,11 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 		StatusChangeMessage: changeMsg,
 		PublishedAt:         publishedAt,
 		CensoredAt:          censoredAt,
+		AuthorizedAt:        authorizedAt,
+		VettedAt:            vettedAt,
 		AbandonedAt:         abandonedAt,
+		VoteStartBlock:      startVoteHeight,
+		VoteEndBlock:        endVoteHeight,
 		LinkTo:              pm.LinkTo,
 		LinkBy:              pm.LinkBy,
 		LinkedFrom:          []string{},

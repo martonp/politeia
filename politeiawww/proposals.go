@@ -649,6 +649,26 @@ func (p *politeiawww) getProp(token string) (*www.ProposalRecord, error) {
 	return pr, nil
 }
 
+func (p *politeiawww) getPropAllVersions(token string) (map[uint64]www.ProposalRecord, error) {
+	log.Tracef("getPropAllVersions: %v", token)
+
+	cacheRecords, err := p.cache.RecordAllVersions(token, false)
+	if err != nil {
+		return nil, err
+	}
+
+	wwwRecords := make(map[uint64]www.ProposalRecord)
+	for version, record := range cacheRecords {
+		wwwRecord, err := convertPropFromCache(record)
+		if err != nil {
+			return nil, err
+		}
+		wwwRecords[version] = *wwwRecord
+	}
+
+	return wwwRecords, nil
+}
+
 // getProps returns a [token]www.ProposalRecord map for the provided list of
 // censorship tokens. If a proposal is not found, the map will not include an
 // entry for the corresponding censorship token. It is the responsibility of
@@ -1236,23 +1256,66 @@ func (p *politeiawww) processNewProposal(np www.NewProposal, user *user.User) (*
 	}, nil
 }
 
+func (p *politeiawww) getLinkingTimestamps(token string) ([]www.LinkingTimestamp, error) {
+
+	lfr, err := p.decredLinkedFrom([]string{token})
+	if err != nil {
+		return nil, err
+	}
+
+	linkedFrom := lfr.LinkedFrom[token]
+	log.Errorf("%v \n", lfr)
+	linkingTimestamps := make([]www.LinkingTimestamp, 0, len(linkedFrom))
+
+	for _, linkedToken := range linkedFrom {
+		prop, err := p.getPropVersion(linkedToken, "1")
+		if err != nil {
+			return nil, err
+		}
+
+		linkingTimestamps = append(linkingTimestamps, www.LinkingTimestamp{
+			Timestamp: uint64(prop.PublishedAt),
+			Token:     linkedToken,
+		})
+	}
+
+	return linkingTimestamps, nil
+}
+
 // processVersionTimestamps retrieves the timeline of events related to a
 // proposal.
 func (p *politeiawww) processProposalTimeline(pt www.ProposalTimeline) (*www.ProposalTimelineReply, error) {
 	log.Tracef("processProposalTimeline")
 
-	ptr, err := p.decredProposalTimeline(pt.Token)
+	records, err := p.getPropAllVersions(pt.Token)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(ptr.VersionTimestamps) <= 0 {
-		return nil, www.UserError{
-			ErrorCode: www.ErrorStatusProposalNotFound,
+	reply := www.ProposalTimelineReply{}
+	reply.VersionTimestamps = make([]www.VersionTimestamp, len(records))
+
+	for version, record := range records {
+		if version < 1 || version > uint64(len(records)) {
+			return nil, fmt.Errorf("invalid version of record: %v", version)
+		}
+
+		reply.VersionTimestamps[version-1].Authorized = record.AuthorizedAt
+		reply.VersionTimestamps[version-1].Created = uint64(record.PublishedAt)
+		reply.VersionTimestamps[version-1].Vetted = uint64(record.VettedAt)
+
+		if record.VoteStartBlock > 0 {
+			reply.StartVoteBlock = uint32(record.VoteStartBlock)
+			reply.EndVoteBlock = uint32(record.VoteEndBlock)
 		}
 	}
 
-	reply := convertProposalTimelineReplyFromDecredPlugin(*ptr)
+	linkingTimestamps, err := p.getLinkingTimestamps(pt.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	reply.LinkingTimestamps = linkingTimestamps
 
 	return &reply, nil
 }

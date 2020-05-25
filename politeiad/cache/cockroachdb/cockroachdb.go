@@ -190,6 +190,56 @@ func (c *cockroachdb) recordVersion(db *gorm.DB, token, version string) (*Record
 	return &r, nil
 }
 
+func (c *cockroachdb) getRecordAllVersions(db *gorm.DB, token string, fetchFiles bool) ([]Record, error) {
+	records := make([]Record, 0, 16)
+	var err error
+
+	if fetchFiles {
+		err = db.
+			Preload("Metadata").
+			Preload("Files").
+			Where("records.token = ?", token).
+			Find(&records).
+			Error
+	} else {
+		err = db.
+			Preload("Metadata").
+			Where("records.token = ?", token).
+			Find(&records).
+			Error
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
+}
+
+func (c *cockroachdb) RecordAllVersions(token string, fetchFiles bool) (map[uint64]cache.Record, error) {
+	log.Tracef("RecordAllVersions: %v", token)
+
+	c.RLock()
+	shutdown := c.shutdown
+	c.RUnlock()
+
+	if shutdown {
+		return nil, cache.ErrShutdown
+	}
+
+	records, err := c.getRecordAllVersions(c.recordsdb, token, fetchFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compile records map
+	cr := make(map[uint64]cache.Record, len(records)) // [token]cache.Record
+	for _, r := range records {
+		cr[r.Version] = convertRecordToCache(r)
+	}
+
+	return cr, nil
+}
+
 // RecordVersion gets the specified version of a record from the database.
 func (c *cockroachdb) RecordVersion(token, version string) (*cache.Record, error) {
 	log.Tracef("RecordVersion: %v %v", token, version)
