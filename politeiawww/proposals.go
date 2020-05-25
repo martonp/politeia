@@ -649,6 +649,8 @@ func (p *politeiawww) getProp(token string) (*www.ProposalRecord, error) {
 	return pr, nil
 }
 
+// getPropAllVersions retrieves all versions of a proposal from the cache. This
+// function does NOT call fillProposalMissingFields.
 func (p *politeiawww) getPropAllVersions(token string) (map[uint64]www.ProposalRecord, error) {
 	log.Tracef("getPropAllVersions: %v", token)
 
@@ -763,7 +765,7 @@ func (p *politeiawww) getProps(tokens []string) (map[string]www.ProposalRecord, 
 
 // getPropVersion gets a specific version of a proposal from the cache then
 // fills in any misssing fields before returning the proposal.
-func (p *politeiawww) getPropVersion(token, version string) (*www.ProposalRecord, error) {
+func (p *politeiawww) getPropVersion(token, version string, fillMissingFields bool) (*www.ProposalRecord, error) {
 	log.Tracef("getPropVersion: %v %v", token, version)
 
 	r, err := p.cache.RecordVersion(token, version)
@@ -776,9 +778,11 @@ func (p *politeiawww) getPropVersion(token, version string) (*www.ProposalRecord
 		return nil, err
 	}
 
-	err = p.fillProposalMissingFields(pr)
-	if err != nil {
-		return nil, err
+	if fillMissingFields {
+		err = p.fillProposalMissingFields(pr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return pr, nil
@@ -1256,8 +1260,9 @@ func (p *politeiawww) processNewProposal(np www.NewProposal, user *user.User) (*
 	}, nil
 }
 
+// getLinkingTimestamps looks up the proposals that were linked to an RFP
+// proposal and the time when they were created.
 func (p *politeiawww) getLinkingTimestamps(token string) ([]www.LinkingTimestamp, error) {
-
 	lfr, err := p.decredLinkedFrom([]string{token})
 	if err != nil {
 		return nil, err
@@ -1268,7 +1273,7 @@ func (p *politeiawww) getLinkingTimestamps(token string) ([]www.LinkingTimestamp
 	linkingTimestamps := make([]www.LinkingTimestamp, 0, len(linkedFrom))
 
 	for _, linkedToken := range linkedFrom {
-		prop, err := p.getPropVersion(linkedToken, "1")
+		prop, err := p.getPropVersion(linkedToken, "1", false)
 		if err != nil {
 			return nil, err
 		}
@@ -1314,7 +1319,6 @@ func (p *politeiawww) processProposalTimeline(pt www.ProposalTimeline) (*www.Pro
 	if err != nil {
 		return nil, err
 	}
-
 	reply.LinkingTimestamps = linkingTimestamps
 
 	return &reply, nil
@@ -1361,7 +1365,7 @@ func (p *politeiawww) processProposalDetails(propDetails www.ProposalsDetails, u
 	if propDetails.Version == "" {
 		prop, err = p.getProp(propDetails.Token)
 	} else {
-		prop, err = p.getPropVersion(propDetails.Token, propDetails.Version)
+		prop, err = p.getPropVersion(propDetails.Token, propDetails.Version, true)
 	}
 	if err != nil {
 		if err == cache.ErrRecordNotFound {
@@ -1708,7 +1712,8 @@ func (p *politeiawww) processSetProposalStatus(sps www.SetProposalStatus, u *use
 	}
 
 	// Get record from the cache
-	updatedProp, err := p.getPropVersion(pr.CensorshipRecord.Token, pr.Version)
+	updatedProp, err := p.getPropVersion(pr.CensorshipRecord.Token, pr.Version,
+		true)
 	if err != nil {
 		return nil, err
 	}
