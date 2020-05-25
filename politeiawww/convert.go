@@ -361,7 +361,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 		pubkey string
 		sig    string
 
-		publishedAt     int64
+		createdAt       int64
 		authorizedAt    *www.VoteAuthorizationTimestamp
 		startVoteHeight int64
 		endVoteHeight   int64
@@ -391,7 +391,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 				name = pg.Name
 				pubkey = pg.PublicKey
 				sig = pg.Signature
-				publishedAt = pg.Timestamp
+				createdAt = pg.Timestamp
 
 			case 2:
 				pg, err := mdstream.DecodeProposalGeneralV2([]byte(ms.Payload))
@@ -400,7 +400,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 				}
 				pubkey = pg.PublicKey
 				sig = pg.Signature
-				publishedAt = pg.Timestamp
+				createdAt = pg.Timestamp
 
 			default:
 				return nil, fmt.Errorf("unknown ProposalGeneral version %v", ms)
@@ -455,7 +455,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 		changeMsgTimestamp int64
 		censoredAt         int64
 		abandonedAt        int64
-		vettedAt           int64
+		publishedAt        int64
 	)
 	for _, v := range statusesV1 {
 		// Keep the most recent status change message. This is what
@@ -467,7 +467,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 
 		switch convertPropStatusFromPD(v.NewStatus) {
 		case www.PropStatusPublic:
-			vettedAt = v.Timestamp
+			publishedAt = v.Timestamp
 		case www.PropStatusCensored:
 			censoredAt = v.Timestamp
 		case www.PropStatusAbandoned:
@@ -484,7 +484,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 
 		switch convertPropStatusFromPD(v.NewStatus) {
 		case www.PropStatusPublic:
-			vettedAt = v.Timestamp
+			publishedAt = v.Timestamp
 		case www.PropStatusCensored:
 			censoredAt = v.Timestamp
 		case www.PropStatusAbandoned:
@@ -550,7 +550,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 		PublishedAt:         publishedAt,
 		CensoredAt:          censoredAt,
 		AuthorizedAt:        authorizedAt,
-		VettedAt:            vettedAt,
+		CreatedAt:           createdAt,
 		AbandonedAt:         abandonedAt,
 		VoteStartBlock:      startVoteHeight,
 		VoteEndBlock:        endVoteHeight,

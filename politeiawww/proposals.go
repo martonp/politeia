@@ -1306,8 +1306,8 @@ func (p *politeiawww) processProposalTimeline(pt www.ProposalTimeline) (*www.Pro
 		}
 
 		reply.VersionTimestamps[version-1].Authorized = record.AuthorizedAt
-		reply.VersionTimestamps[version-1].Created = uint64(record.PublishedAt)
-		reply.VersionTimestamps[version-1].Vetted = uint64(record.VettedAt)
+		reply.VersionTimestamps[version-1].Created = uint64(record.CreatedAt)
+		reply.VersionTimestamps[version-1].Vetted = uint64(record.PublishedAt)
 
 		if record.VoteStartBlock > 0 {
 			reply.StartVoteBlock = uint32(record.VoteStartBlock)

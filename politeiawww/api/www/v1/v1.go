@@ -507,7 +507,7 @@ type ProposalRecord struct {
 	StatusChangeMessage string                      `json:"statuschangemessage,omitempty"` // Message associated to the status change
 	PublishedAt         int64                       `json:"publishedat,omitempty"`         // UNIX timestamp of when proposal was published
 	CensoredAt          int64                       `json:"censoredat,omitempty"`          // UNIX timestamp of when proposal was censored
-	VettedAt            int64                       `json:"vettedat,omitempty"`            // UNIX timestamp of when proposal was vetted
+	CreatedAt           int64                       `json:"createdAt,omitempty"`           // UNIX timestamp of when proposal was created
 	AbandonedAt         int64                       `json:"abandonedat,omitempty"`         // UNIX timestamp of when proposal was abandoned
 	VoteStartBlock      int64                       `json:"votestartblock,omitempty"`      // Block height when voting on this proposal starts
 	VoteEndBlock        int64                       `json:"voteendblock,omitempty"`        // Block height when voting on this proposal ends
