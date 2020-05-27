@@ -1597,7 +1597,6 @@ func (d *decred) cmdVoteSummary(payload string) (string, error) {
 func (d *decred) linkedFrom(token string) ([]string, error) {
 	// Ensure the token corresponds to an actual record
 	ok, err := recordExists(d.recordsdb, token, "1")
-	log.Errorf("token: %v, %v, %v", token, ok, err)
 	if err != nil {
 		return nil, err
 	}
@@ -1620,7 +1619,6 @@ func (d *decred) linkedFrom(token string) ([]string, error) {
         AND proposal_metadata.link_to = ?
 		AND a.status IN (?)`
 
-	log.Errorf("%v\n", q)
 	rows, err := d.recordsdb.
 		Raw(q, token, publicStatuses()).
 		Rows()

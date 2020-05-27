@@ -1287,7 +1287,7 @@ func (p *politeiawww) getLinkingTimestamps(token string) ([]www.LinkingTimestamp
 	return linkingTimestamps, nil
 }
 
-// processVersionTimestamps retrieves the timeline of events related to a
+// processProposalTimeline retrieves the timeline of events related to a
 // proposal.
 func (p *politeiawww) processProposalTimeline(pt www.ProposalTimeline) (*www.ProposalTimelineReply, error) {
 	log.Tracef("processProposalTimeline")
@@ -1305,14 +1305,22 @@ func (p *politeiawww) processProposalTimeline(pt www.ProposalTimeline) (*www.Pro
 			return nil, fmt.Errorf("invalid version of record: %v", version)
 		}
 
-		reply.VersionTimestamps[version-1].Authorized = record.AuthorizedAt
 		reply.VersionTimestamps[version-1].Created = uint64(record.CreatedAt)
 		reply.VersionTimestamps[version-1].Vetted = uint64(record.PublishedAt)
+	}
 
-		if record.VoteStartBlock > 0 {
-			reply.StartVoteBlock = uint32(record.VoteStartBlock)
-			reply.EndVoteBlock = uint32(record.VoteEndBlock)
-		}
+	bb, err := p.getBestBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	vs, err := p.voteSummaryGet(pt.Token, bb)
+	if err != nil {
+		return nil, err
+	}
+	if vs.EndHeight > 0 {
+		reply.EndVoteBlock = uint32(vs.EndHeight)
+		reply.StartVoteBlock = reply.EndVoteBlock - vs.Duration
 	}
 
 	linkingTimestamps, err := p.getLinkingTimestamps(pt.Token)
@@ -2717,13 +2725,13 @@ func validateStartVote(sv www2.StartVote, u user.User, pr www.ProposalRecord, vs
 
 	// Validate vote params
 	switch {
-	case sv.Vote.Duration < durationMin:
-		// Duration not large enough
-		e := fmt.Sprintf("vote duration must be >= %v", durationMin)
-		return www.UserError{
-			ErrorCode:    www.ErrorStatusInvalidPropVoteParams,
-			ErrorContext: []string{e},
-		}
+	/*case sv.Vote.Duration < durationMin:
+	// Duration not large enough
+	e := fmt.Sprintf("vote duration must be >= %v", durationMin)
+	return www.UserError{
+		ErrorCode:    www.ErrorStatusInvalidPropVoteParams,
+		ErrorContext: []string{e},
+	}*/
 	case sv.Vote.Duration > durationMax:
 		// Duration too large
 		e := fmt.Sprintf("vote duration must be <= %v", durationMax)

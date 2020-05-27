@@ -424,6 +424,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 			}
 
 		case decredplugin.MDStreamAuthorizeVote:
+			log.Errorf("SHIT IS AUTHORIZED!!!!!!!!!!!!!!!!!!!!!!!")
 			av, err := decredplugin.DecodeAuthorizeVote([]byte(ms.Payload))
 			if err != nil {
 				return nil, fmt.Errorf("DecodeAuthorizeVote: %v", err)
