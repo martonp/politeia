@@ -1617,7 +1617,7 @@ func (d *decred) linkedFrom(token string) ([]string, error) {
           ON a.token = proposal_metadata.token
         WHERE b.token IS NULL
         AND proposal_metadata.link_to = ?
-				AND a.status IN (?)`
+        AND a.status IN (?)`
 
 	rows, err := d.recordsdb.
 		Raw(q, token, publicStatuses()).
