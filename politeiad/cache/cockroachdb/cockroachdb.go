@@ -190,6 +190,30 @@ func (c *cockroachdb) recordVersion(db *gorm.DB, token, version string) (*Record
 	return &r, nil
 }
 
+// RecordVersion gets the specified version of a record from the database.
+func (c *cockroachdb) RecordVersion(token, version string) (*cache.Record, error) {
+	log.Tracef("RecordVersion: %v %v", token, version)
+
+	c.RLock()
+	shutdown := c.shutdown
+	c.RUnlock()
+
+	if shutdown {
+		return nil, cache.ErrShutdown
+	}
+
+	r, err := c.recordVersion(c.recordsdb, token, version)
+	if err != nil {
+		return nil, err
+	}
+
+	cr := convertRecordToCache(*r)
+	return &cr, nil
+}
+
+// getRecordAllVersions gets each version of a record from the database.
+// This function has a database parameter so that it can be called inside of
+// a transaction when required.
 func (c *cockroachdb) getRecordAllVersions(db *gorm.DB, token string, fetchFiles bool) ([]Record, error) {
 	records := make([]Record, 0, 16)
 	var err error
@@ -209,12 +233,16 @@ func (c *cockroachdb) getRecordAllVersions(db *gorm.DB, token string, fetchFiles
 			Error
 	}
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			err = cache.ErrRecordNotFound
+		}
 		return nil, err
 	}
 
 	return records, nil
 }
 
+// RecordAllVersions gets each version of a record from the database.
 func (c *cockroachdb) RecordAllVersions(token string, fetchFiles bool) (map[uint64]cache.Record, error) {
 	log.Tracef("RecordAllVersions: %v", token)
 
@@ -238,27 +266,6 @@ func (c *cockroachdb) RecordAllVersions(token string, fetchFiles bool) (map[uint
 	}
 
 	return cr, nil
-}
-
-// RecordVersion gets the specified version of a record from the database.
-func (c *cockroachdb) RecordVersion(token, version string) (*cache.Record, error) {
-	log.Tracef("RecordVersion: %v %v", token, version)
-
-	c.RLock()
-	shutdown := c.shutdown
-	c.RUnlock()
-
-	if shutdown {
-		return nil, cache.ErrShutdown
-	}
-
-	r, err := c.recordVersion(c.recordsdb, token, version)
-	if err != nil {
-		return nil, err
-	}
-
-	cr := convertRecordToCache(*r)
-	return &cr, nil
 }
 
 // record gets the most recent version of a record from the database.  This

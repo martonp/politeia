@@ -361,10 +361,7 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 		pubkey string
 		sig    string
 
-		createdAt       int64
-		authorizedAt    *www.VoteAuthorizationTimestamp
-		startVoteHeight int64
-		endVoteHeight   int64
+		createdAt int64
 
 		statusesV1 []mdstream.RecordStatusChangeV1
 		statusesV2 []mdstream.RecordStatusChangeV2
@@ -424,27 +421,17 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 			}
 
 		case decredplugin.MDStreamAuthorizeVote:
-			log.Errorf("SHIT IS AUTHORIZED!!!!!!!!!!!!!!!!!!!!!!!")
-			av, err := decredplugin.DecodeAuthorizeVote([]byte(ms.Payload))
-			if err != nil {
-				return nil, fmt.Errorf("DecodeAuthorizeVote: %v", err)
-			}
-			authorizedAt = &www.VoteAuthorizationTimestamp{
-				Action:    av.Action,
-				Timestamp: uint64(av.Timestamp),
-			}
+			// Valid proposal mdstream but not needed for a ProposalRecord
+			log.Tracef("convertPropFromCache: skipping mdstream %v",
+				decredplugin.MDStreamAuthorizeVote)
 		case decredplugin.MDStreamVoteBits:
 			// Valid proposal mdstream but not needed for a ProposalRecord
 			log.Tracef("convertPropFromCache: skipping mdstream %v",
 				decredplugin.MDStreamVoteBits)
 		case decredplugin.MDStreamVoteSnapshot:
-			sv, err := decredplugin.DecodeStartVoteReply([]byte(ms.Payload))
-			if err != nil {
-				return nil, fmt.Errorf("DecodeStartVoteReply: %v", err)
-			}
-			startVoteHeight, _ = strconv.ParseInt(sv.StartBlockHeight, 0, 64)
-			endVoteHeight, _ = strconv.ParseInt(sv.EndHeight, 0, 64)
-
+			// Valid proposal mdstream but not needed for a ProposalRecord
+			log.Tracef("convertPropFromCache: skipping mdstream %v",
+				decredplugin.MDStreamVoteSnapshot)
 		default:
 			return nil, fmt.Errorf("invalid mdstream: %v", ms)
 		}
@@ -548,13 +535,10 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 		NumComments:         0,
 		Version:             r.Version,
 		StatusChangeMessage: changeMsg,
+		CreatedAt:           createdAt,
 		PublishedAt:         publishedAt,
 		CensoredAt:          censoredAt,
-		AuthorizedAt:        authorizedAt,
-		CreatedAt:           createdAt,
 		AbandonedAt:         abandonedAt,
-		VoteStartBlock:      startVoteHeight,
-		VoteEndBlock:        endVoteHeight,
 		LinkTo:              pm.LinkTo,
 		LinkBy:              pm.LinkBy,
 		LinkedFrom:          []string{},

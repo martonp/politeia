@@ -494,27 +494,24 @@ type VoteSummary struct {
 // Signature is a signature of the proposal merkle root where the merkle root
 // contains all Files and Metadata of the proposal.
 type ProposalRecord struct {
-	Name                string                      `json:"name"`                          // Suggested short proposal name
-	State               PropStateT                  `json:"state"`                         // Current state of proposal
-	Status              PropStatusT                 `json:"status"`                        // Current status of proposal
-	Timestamp           int64                       `json:"timestamp"`                     // Last update of proposal
-	UserId              string                      `json:"userid"`                        // ID of user who submitted proposal
-	Username            string                      `json:"username"`                      // Username of user who submitted proposal
-	PublicKey           string                      `json:"publickey"`                     // Key used for signature.
-	Signature           string                      `json:"signature"`                     // Signature of merkle root
-	NumComments         uint                        `json:"numcomments"`                   // Number of comments on the proposal
-	Version             string                      `json:"version"`                       // Record version
-	StatusChangeMessage string                      `json:"statuschangemessage,omitempty"` // Message associated to the status change
-	PublishedAt         int64                       `json:"publishedat,omitempty"`         // UNIX timestamp of when proposal was published
-	CensoredAt          int64                       `json:"censoredat,omitempty"`          // UNIX timestamp of when proposal was censored
-	CreatedAt           int64                       `json:"createdAt,omitempty"`           // UNIX timestamp of when proposal was created
-	AbandonedAt         int64                       `json:"abandonedat,omitempty"`         // UNIX timestamp of when proposal was abandoned
-	VoteStartBlock      int64                       `json:"votestartblock,omitempty"`      // Block height when voting on this proposal starts
-	VoteEndBlock        int64                       `json:"voteendblock,omitempty"`        // Block height when voting on this proposal ends
-	LinkTo              string                      `json:"linkto,omitempty"`              // Token of linked parent proposal
-	LinkBy              int64                       `json:"linkby,omitempty"`              // UNIX timestamp of RFP deadline
-	LinkedFrom          []string                    `json:"linkedfrom,omitempty"`          // Tokens of public props that have linked to this this prop
-	AuthorizedAt        *VoteAuthorizationTimestamp `json:"voteauthorization,omitempty"`
+	Name                string      `json:"name"`                          // Suggested short proposal name
+	State               PropStateT  `json:"state"`                         // Current state of proposal
+	Status              PropStatusT `json:"status"`                        // Current status of proposal
+	Timestamp           int64       `json:"timestamp"`                     // Last update of proposal
+	UserId              string      `json:"userid"`                        // ID of user who submitted proposal
+	Username            string      `json:"username"`                      // Username of user who submitted proposal
+	PublicKey           string      `json:"publickey"`                     // Key used for signature.
+	Signature           string      `json:"signature"`                     // Signature of merkle root
+	NumComments         uint        `json:"numcomments"`                   // Number of comments on the proposal
+	Version             string      `json:"version"`                       // Record version
+	StatusChangeMessage string      `json:"statuschangemessage,omitempty"` // Message associated to the status change
+	CreatedAt           int64       `json:"createdat,omitempty"`           // UNIX timestamp of when proposal was created
+	PublishedAt         int64       `json:"publishedat,omitempty"`         // UNIX timestamp of when proposal was published
+	CensoredAt          int64       `json:"censoredat,omitempty"`          // UNIX timestamp of when proposal was censored
+	AbandonedAt         int64       `json:"abandonedat,omitempty"`         // UNIX timestamp of when proposal was abandoned
+	LinkTo              string      `json:"linkto,omitempty"`              // Token of linked parent proposal
+	LinkBy              int64       `json:"linkby,omitempty"`              // UNIX timestamp of RFP deadline
+	LinkedFrom          []string    `json:"linkedfrom,omitempty"`          // Tokens of public props that have linked to this this prop
 
 	Files            []File           `json:"files"`
 	Metadata         []Metadata       `json:"metadata"`
@@ -875,19 +872,11 @@ type ProposalTimeline struct {
 	Token string `json:"token"` // Censorship token
 }
 
-// VoteAuthorizationTimestamp contains the timestamp and whether vote
-// authorization was revoked.
-type VoteAuthorizationTimestamp struct {
-	Action    string `json:"action"`    // Authorized of revoked
-	Timestamp uint64 `json:"timestamp"` // Time when creator authorized or revoked
-}
-
 // VersionTimestamp contains the timestamps of events related to a version of
 // a proposal.
 type VersionTimestamp struct {
-	Created    uint64                      `json:"created"`              // Time when version was created
-	Vetted     uint64                      `json:"vetted,omitempty"`     // Time when admin vetted version
-	Authorized *VoteAuthorizationTimestamp `json:"authorized,omitempty"` // Information about vote authorization
+	Created uint64 `json:"created"`          // Time when version was createdFVoteStartBlock      int64                       `json:"votestartblock
+	Vetted  uint64 `json:"vetted,omitempty"` // Time when admin vetted version
 }
 
 // LinkingTimestamp contains the token of a proposal and the timestamp it was

@@ -1261,7 +1261,7 @@ func (p *politeiawww) processNewProposal(np www.NewProposal, user *user.User) (*
 }
 
 // getLinkingTimestamps looks up the proposals that were linked to an RFP
-// proposal and the time when they were created.
+// proposal and the timestamps when they were published.
 func (p *politeiawww) getLinkingTimestamps(token string) ([]www.LinkingTimestamp, error) {
 	lfr, err := p.decredLinkedFrom([]string{token})
 	if err != nil {
@@ -1269,7 +1269,6 @@ func (p *politeiawww) getLinkingTimestamps(token string) ([]www.LinkingTimestamp
 	}
 
 	linkedFrom := lfr.LinkedFrom[token]
-	log.Errorf("%v \n", lfr)
 	linkingTimestamps := make([]www.LinkingTimestamp, 0, len(linkedFrom))
 
 	for _, linkedToken := range linkedFrom {
@@ -1294,26 +1293,31 @@ func (p *politeiawww) processProposalTimeline(pt www.ProposalTimeline) (*www.Pro
 
 	records, err := p.getPropAllVersions(pt.Token)
 	if err != nil {
+		if err == cache.ErrRecordNotFound {
+			err = www.UserError{
+				ErrorCode: www.ErrorStatusProposalNotFound,
+			}
+		}
 		return nil, err
 	}
 
 	reply := www.ProposalTimelineReply{}
-	reply.VersionTimestamps = make([]www.VersionTimestamp, len(records))
 
+	// Get the timestamps when each version was created and vetted
+	reply.VersionTimestamps = make([]www.VersionTimestamp, len(records))
 	for version, record := range records {
 		if version < 1 || version > uint64(len(records)) {
 			return nil, fmt.Errorf("invalid version of record: %v", version)
 		}
-
 		reply.VersionTimestamps[version-1].Created = uint64(record.CreatedAt)
 		reply.VersionTimestamps[version-1].Vetted = uint64(record.PublishedAt)
 	}
 
+	// Get the start and end blocks of the voting period
 	bb, err := p.getBestBlock()
 	if err != nil {
 		return nil, err
 	}
-
 	vs, err := p.voteSummaryGet(pt.Token, bb)
 	if err != nil {
 		return nil, err
@@ -1323,6 +1327,8 @@ func (p *politeiawww) processProposalTimeline(pt www.ProposalTimeline) (*www.Pro
 		reply.StartVoteBlock = reply.EndVoteBlock - vs.Duration
 	}
 
+	// If this is an RFP proposal, get the timestamps when proposals were
+	// linked with this one
 	linkingTimestamps, err := p.getLinkingTimestamps(pt.Token)
 	if err != nil {
 		return nil, err
@@ -2725,13 +2731,13 @@ func validateStartVote(sv www2.StartVote, u user.User, pr www.ProposalRecord, vs
 
 	// Validate vote params
 	switch {
-	/*case sv.Vote.Duration < durationMin:
-	// Duration not large enough
-	e := fmt.Sprintf("vote duration must be >= %v", durationMin)
-	return www.UserError{
-		ErrorCode:    www.ErrorStatusInvalidPropVoteParams,
-		ErrorContext: []string{e},
-	}*/
+	case sv.Vote.Duration < durationMin:
+		// Duration not large enough
+		e := fmt.Sprintf("vote duration must be >= %v", durationMin)
+		return www.UserError{
+			ErrorCode:    www.ErrorStatusInvalidPropVoteParams,
+			ErrorContext: []string{e},
+		}
 	case sv.Vote.Duration > durationMax:
 		// Duration too large
 		e := fmt.Sprintf("vote duration must be <= %v", durationMax)
