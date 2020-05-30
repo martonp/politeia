@@ -369,7 +369,6 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 
 		token = r.CensorshipRecord.Token
 	)
-
 	for _, ms := range r.Metadata {
 		switch ms.ID {
 		case mdstream.IDProposalGeneral:
@@ -389,7 +388,6 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 				pubkey = pg.PublicKey
 				sig = pg.Signature
 				createdAt = pg.Timestamp
-
 			case 2:
 				pg, err := mdstream.DecodeProposalGeneralV2([]byte(ms.Payload))
 				if err != nil {
@@ -398,7 +396,6 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 				pubkey = pg.PublicKey
 				sig = pg.Signature
 				createdAt = pg.Timestamp
-
 			default:
 				return nil, fmt.Errorf("unknown ProposalGeneral version %v", ms)
 			}
@@ -441,9 +438,9 @@ func convertPropFromCache(r cache.Record) (*www.ProposalRecord, error) {
 	var (
 		changeMsg          string
 		changeMsgTimestamp int64
+		publishedAt        int64
 		censoredAt         int64
 		abandonedAt        int64
-		publishedAt        int64
 	)
 	for _, v := range statusesV1 {
 		// Keep the most recent status change message. This is what
