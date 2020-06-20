@@ -20,6 +20,8 @@ import (
 	cms "github.com/decred/politeia/politeiawww/api/cms/v1"
 	www "github.com/decred/politeia/politeiawww/api/www/v1"
 	database "github.com/decred/politeia/politeiawww/cmsdatabase"
+	"github.com/decred/politeia/politeiawww/dcrdata"
+
 	"github.com/decred/politeia/politeiawww/user"
 	"github.com/decred/politeia/util"
 	"github.com/google/uuid"
@@ -32,22 +34,22 @@ const (
 )
 
 func (p *politeiawww) addWatchAddress(address string) {
-	err := p.wsDcrdata.subToAddr(address)
+	err := p.WSDcrdata.SubToAddr(address)
 	if err != nil {
 		log.Errorf("addWatchAddress: subscribe '%v': %v",
 			address, err)
-		p.reconnectWS()
+		p.WSDcrdata.Reconnect()
 		return
 	}
 	log.Infof("Subscribed to listen: %v", address)
 }
 
 func (p *politeiawww) removeWatchAddress(address string) {
-	err := p.wsDcrdata.unsubFromAddr(address)
+	err := p.WSDcrdata.UnsubFromAddr(address)
 	if err != nil {
 		log.Errorf("removeWatchAddress: unsubscribe '%v': %v",
 			address, err)
-		p.reconnectWS()
+		p.WSDcrdata.Reconnect()
 		return
 	}
 	log.Infof("Unsubscribed: %v", address)
@@ -56,7 +58,17 @@ func (p *politeiawww) removeWatchAddress(address string) {
 func (p *politeiawww) setupCMSAddressWatcher() {
 	go func() {
 		for {
-			msg, ok := <-p.wsDcrdata.client.Receive()
+			receiver, err := p.WSDcrdata.Receive()
+			if err == dcrdata.ErrShutdown {
+				log.Infof("Dcrdata websocket closed")
+				return
+			} else if err != nil {
+				log.Errorf("WSDcrdata Receive: %v", err)
+				log.Infof("Dcrdata websocket closed")
+				return
+			}
+
+			msg, ok := <-receiver
 			if !ok {
 				break
 			}
@@ -90,6 +102,18 @@ func (p *politeiawww) setupCMSAddressWatcher() {
 				}
 			case *pstypes.TxList:
 				log.Debugf("Message (%s): TxList(len=%d)", msg.EventId, len(*m))
+			case *pstypes.HangUp:
+				log.Infof("Dcrdata has hung up. Will reconnect.")
+				err := p.WSDcrdata.Reconnect()
+				if err == dcrdata.ErrShutdown {
+					log.Infof("Dcrdata websocket closed")
+					return
+				} else if err != nil {
+					log.Errorf("WSDcrdata Reconnect: %v", err)
+					log.Infof("Dcrdata websocket closed")
+					return
+				}
+				log.Infof("Successfully reconnected to dcrdata")
 			default:
 				log.Debugf("Message of type %v unhandled. %v", msg.EventId, m)
 			}
@@ -438,33 +462,4 @@ func (p *politeiawww) invoiceStatusPaid(token string) error {
 		}
 	}
 	return nil
-}
-
-func (p *politeiawww) reconnectWS() {
-	if p.wsDcrdata != nil {
-		p.wsDcrdata.client.Stop()
-		p.wsDcrdata = nil
-	}
-	var err error
-	// Retry wsDcrdata reconnect every 1 minute
-	for {
-		p.wsDcrdata, err = newWSDcrdata(p.dcrdataHostWS())
-		if err != nil {
-			log.Errorf("reconnectWS error: %v", err)
-		}
-		if p.wsDcrdata != nil {
-			// Rerun the existing CMS address watching start up.
-			// This will check all addresses that are still marked as watching
-			// for payment while disconnected and re-subscribe if still
-			// outstanding.
-			err = p.restartCMSAddressesWatching()
-			if err != nil {
-				log.Errorf("restartCMSAddressesWatching failed: %v", err)
-			}
-			break
-		}
-		log.Infof("Retrying ws dcrdata reconnect in 1 minute...")
-		time.Sleep(1 * time.Minute)
-	}
-	p.setupCMSAddressWatcher()
 }

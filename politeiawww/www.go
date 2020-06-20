@@ -30,6 +30,7 @@ import (
 	www "github.com/decred/politeia/politeiawww/api/www/v1"
 	database "github.com/decred/politeia/politeiawww/cmsdatabase"
 	cmsdb "github.com/decred/politeia/politeiawww/cmsdatabase/cockroachdb"
+	"github.com/decred/politeia/politeiawww/dcrdata"
 	"github.com/decred/politeia/politeiawww/user"
 	userdb "github.com/decred/politeia/politeiawww/user/cockroachdb"
 	"github.com/decred/politeia/politeiawww/user/localdb"
@@ -505,11 +506,11 @@ func _main() error {
 	p.router.Use(recoverMiddleware)
 
 	// Setup dcrdata websocket connection
-	ws, err := newWSDcrdata(p.dcrdataHostWS())
+	ws, err := dcrdata.NewWSDcrdata(p.dcrdataHostWS())
 	if err != nil {
 		return fmt.Errorf("new wsDcrdata: %v", err)
 	}
-	p.wsDcrdata = ws
+	p.WSDcrdata = ws
 
 	switch p.cfg.Mode {
 	case politeiaWWWMode:
@@ -703,8 +704,8 @@ done:
 	p.db.Close()
 
 	// Shutdown all dcrdata websockets
-	if p.wsDcrdata != nil {
-		p.wsDcrdata.close()
+	if p.WSDcrdata != nil {
+		p.WSDcrdata.Close()
 	}
 
 	return nil
