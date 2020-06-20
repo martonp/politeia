@@ -135,7 +135,7 @@ type politeiawww struct {
 
 	// WSDcrdata contains the client and list of current subscriptions to
 	// dcrdata's public subscription websocket
-	WSDcrdata *dcrdata.WSDcrdata
+	wsDcrdata *dcrdata.WSDcrdata
 
 	// The current best block is cached and updated using a websocket
 	// subscription to dcrdata. If the websocket connection is not active,
@@ -921,20 +921,20 @@ func (p *politeiawww) resetPiDcrdataWSSubs() error {
 	// using the old cached value, politeiad is queried for the best block.
 	p.updateBestBlock(0)
 
-	return p.WSDcrdata.Reconnect()
+	return p.wsDcrdata.Reconnect()
 }
 
 // setupPiDcrdataWSSubs subscribes and listens to websocket messages from
 // dcrdata that are needed for pi.
 func (p *politeiawww) setupPiDcrdataWSSubs() error {
-	err := p.WSDcrdata.Subscribe(dcrdata.NewBlockSub)
+	err := p.wsDcrdata.Subscribe(dcrdata.NewBlockSub)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			receiver, err := p.WSDcrdata.Receive()
+			receiver, err := p.wsDcrdata.Receive()
 			if err == dcrdata.ErrShutdown {
 				log.Infof("Dcrdata websocket closed")
 				return
@@ -950,7 +950,7 @@ func (p *politeiawww) setupPiDcrdataWSSubs() error {
 				// This check is here to avoid a spew of unnecessary error
 				// messages. The channel is expected to be closed if WSDcrdata
 				// is shut down.
-				if p.WSDcrdata.IsShutdown() {
+				if p.wsDcrdata.IsShutdown() {
 					return
 				}
 

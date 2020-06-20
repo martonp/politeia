@@ -34,22 +34,22 @@ const (
 )
 
 func (p *politeiawww) addWatchAddress(address string) {
-	err := p.WSDcrdata.SubToAddr(address)
+	err := p.wsDcrdata.SubToAddr(address)
 	if err != nil {
 		log.Errorf("addWatchAddress: subscribe '%v': %v",
 			address, err)
-		p.WSDcrdata.Reconnect()
+		p.reconnectWS()
 		return
 	}
 	log.Infof("Subscribed to listen: %v", address)
 }
 
 func (p *politeiawww) removeWatchAddress(address string) {
-	err := p.WSDcrdata.UnsubFromAddr(address)
+	err := p.wsDcrdata.UnsubFromAddr(address)
 	if err != nil {
 		log.Errorf("removeWatchAddress: unsubscribe '%v': %v",
 			address, err)
-		p.WSDcrdata.Reconnect()
+		p.reconnectWS()
 		return
 	}
 	log.Infof("Unsubscribed: %v", address)
@@ -58,7 +58,7 @@ func (p *politeiawww) removeWatchAddress(address string) {
 func (p *politeiawww) setupCMSAddressWatcher() {
 	go func() {
 		for {
-			receiver, err := p.WSDcrdata.Receive()
+			receiver, err := p.wsDcrdata.Receive()
 			if err == dcrdata.ErrShutdown {
 				log.Infof("Dcrdata websocket closed")
 				return
@@ -70,7 +70,7 @@ func (p *politeiawww) setupCMSAddressWatcher() {
 
 			msg, ok := <-receiver
 			if !ok {
-				break
+				return
 			}
 			if msg == nil {
 				log.Errorf("ReceiveMsg failed")
@@ -102,18 +102,6 @@ func (p *politeiawww) setupCMSAddressWatcher() {
 				}
 			case *pstypes.TxList:
 				log.Debugf("Message (%s): TxList(len=%d)", msg.EventId, len(*m))
-			case *pstypes.HangUp:
-				log.Infof("Dcrdata has hung up. Will reconnect.")
-				err := p.WSDcrdata.Reconnect()
-				if err == dcrdata.ErrShutdown {
-					log.Infof("Dcrdata websocket closed")
-					return
-				} else if err != nil {
-					log.Errorf("WSDcrdata Reconnect: %v", err)
-					log.Infof("Dcrdata websocket closed")
-					return
-				}
-				log.Infof("Successfully reconnected to dcrdata")
 			default:
 				log.Debugf("Message of type %v unhandled. %v", msg.EventId, m)
 			}
@@ -121,7 +109,7 @@ func (p *politeiawww) setupCMSAddressWatcher() {
 	}()
 }
 
-func (p *politeiawww) startCMSAddressesWatching() error {
+func (p *politeiawww) restartCMSAddressesWatching() error {
 	approvedInvoices, err := p.cmsDB.InvoicesByStatus(int(cms.InvoiceStatusApproved))
 	if err != nil {
 		return err
@@ -462,4 +450,33 @@ func (p *politeiawww) invoiceStatusPaid(token string) error {
 		}
 	}
 	return nil
+}
+
+func (p *politeiawww) reconnectWS() {
+	if p.wsDcrdata != nil {
+		p.wsDcrdata.Close()
+		p.wsDcrdata = nil
+	}
+	var err error
+	// Retry wsDcrdata reconnect every 1 minute
+	for {
+		p.wsDcrdata, err = dcrdata.NewWSDcrdata(p.dcrdataHostWS())
+		if err != nil {
+			log.Errorf("reconnectWS error: %v", err)
+		}
+		if p.wsDcrdata != nil {
+			// Rerun the existing CMS address watching start up.
+			// This will check all addresses that are still marked as watching
+			// for payment while disconnected and re-subscribe if still
+			// outstanding.
+			err = p.restartCMSAddressesWatching()
+			if err != nil {
+				log.Errorf("restartCMSAddressesWatching failed: %v", err)
+			}
+			break
+		}
+		log.Infof("Retrying ws dcrdata reconnect in 1 minute...")
+		time.Sleep(1 * time.Minute)
+	}
+	p.setupCMSAddressWatcher()
 }

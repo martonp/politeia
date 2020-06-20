@@ -510,7 +510,7 @@ func _main() error {
 	if err != nil {
 		return fmt.Errorf("new wsDcrdata: %v", err)
 	}
-	p.WSDcrdata = ws
+	p.wsDcrdata = ws
 
 	switch p.cfg.Mode {
 	case politeiaWWWMode:
@@ -617,7 +617,7 @@ func _main() error {
 		p.checkInvoiceNotifications()
 
 		p.setupCMSAddressWatcher()
-		err = p.startCMSAddressesWatching()
+		err = p.restartCMSAddressesWatching()
 		if err != nil {
 			log.Errorf("error restarting address watcher %v", err)
 		}
@@ -704,8 +704,8 @@ done:
 	p.db.Close()
 
 	// Shutdown all dcrdata websockets
-	if p.WSDcrdata != nil {
-		p.WSDcrdata.Close()
+	if p.wsDcrdata != nil {
+		p.wsDcrdata.Close()
 	}
 
 	return nil
