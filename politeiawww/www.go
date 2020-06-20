@@ -617,7 +617,7 @@ func _main() error {
 		p.checkInvoiceNotifications()
 
 		p.setupCMSAddressWatcher()
-		err = p.restartCMSAddressesWatching()
+		err = p.startCMSAddressesWatching()
 		if err != nil {
 			log.Errorf("error restarting address watcher %v", err)
 		}

@@ -121,7 +121,7 @@ func (p *politeiawww) setupCMSAddressWatcher() {
 	}()
 }
 
-func (p *politeiawww) restartCMSAddressesWatching() error {
+func (p *politeiawww) startCMSAddressesWatching() error {
 	approvedInvoices, err := p.cmsDB.InvoicesByStatus(int(cms.InvoiceStatusApproved))
 	if err != nil {
 		return err
