@@ -511,6 +511,7 @@ func _main() error {
 		return fmt.Errorf("new wsDcrdata: %v", err)
 	}
 	p.wsDcrdata = ws
+	dcrdata.UseLogger(log)
 
 	switch p.cfg.Mode {
 	case politeiaWWWMode:
