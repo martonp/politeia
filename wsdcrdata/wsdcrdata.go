@@ -67,9 +67,23 @@ type pendingEvent struct {
 	action string // Subscribe/unsubscribe
 }
 
-// Client is a dcrdata websocket client for managing dcrdata websocket
+// Client is an interface for a websocket client for managing dcrdata websocket
+// subscriptions. It is needed in order to be able to mock the client with
+// TestWSDcrdata.
+type Client interface {
+	Status() StatusT
+	AddressSubscribe(string) error
+	AddressUnsubscribe(string) error
+	NewBlockSubscribe() error
+	NewBlockUnsubscribe() error
+	Receive() <-chan *psclient.ClientMessage
+	Reconnect()
+	Close() error
+}
+
+// WSClient is a dcrdata websocket client for managing dcrdata websocket
 // subscriptions.
-type Client struct {
+type WSClient struct {
 	sync.Mutex
 	url           string
 	status        StatusT             // Websocket status
@@ -84,7 +98,7 @@ type Client struct {
 }
 
 // statusSet sets the client status.
-func (c *Client) statusSet(s StatusT) {
+func (c *WSClient) statusSet(s StatusT) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -94,7 +108,7 @@ func (c *Client) statusSet(s StatusT) {
 // clientSet sets the websocket client. The lock is held for this so that the
 // golang race detector doesn't complain when the a new client is created and
 // set on reconnection attempts.
-func (c *Client) clientSet(psc *psclient.Client) {
+func (c *WSClient) clientSet(psc *psclient.Client) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -102,7 +116,7 @@ func (c *Client) clientSet(psc *psclient.Client) {
 }
 
 // subAdd adds an event subscription to the subscriptions map.
-func (c *Client) subAdd(event string) {
+func (c *WSClient) subAdd(event string) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -110,7 +124,7 @@ func (c *Client) subAdd(event string) {
 }
 
 // subDel removes an event subscription from the subscriptions map.
-func (c *Client) subDel(event string) {
+func (c *WSClient) subDel(event string) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -118,7 +132,7 @@ func (c *Client) subDel(event string) {
 }
 
 // subsGet returns a copy of the full subscriptions list.
-func (c *Client) subsGet() map[string]struct{} {
+func (c *WSClient) subsGet() map[string]struct{} {
 	c.Lock()
 	defer c.Unlock()
 
@@ -131,7 +145,7 @@ func (c *Client) subsGet() map[string]struct{} {
 }
 
 // subsDel removes all of the subscriptions from the subscriptions map.
-func (c *Client) subsDel() {
+func (c *WSClient) subsDel() {
 	c.Lock()
 	defer c.Unlock()
 
@@ -139,7 +153,7 @@ func (c *Client) subsDel() {
 }
 
 // isSubscribed returns whether the client is subscribed to the provided event.
-func (c *Client) isSubscribed(event string) bool {
+func (c *WSClient) isSubscribed(event string) bool {
 	c.Lock()
 	defer c.Unlock()
 
@@ -148,7 +162,7 @@ func (c *Client) isSubscribed(event string) bool {
 }
 
 // pendingAdd adds a pending event to the list of pending events.
-func (c *Client) pendingAdd(pe pendingEvent) {
+func (c *WSClient) pendingAdd(pe pendingEvent) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -156,7 +170,7 @@ func (c *Client) pendingAdd(pe pendingEvent) {
 }
 
 // pendingDel deletes the full list of pending events.
-func (c *Client) pendingDel() {
+func (c *WSClient) pendingDel() {
 	c.Lock()
 	defer c.Unlock()
 
@@ -164,7 +178,7 @@ func (c *Client) pendingDel() {
 }
 
 // pendingGet returns a copy of the pending events list.
-func (c *Client) pendingGet() []pendingEvent {
+func (c *WSClient) pendingGet() []pendingEvent {
 	c.Lock()
 	defer c.Unlock()
 
@@ -175,7 +189,7 @@ func (c *Client) pendingGet() []pendingEvent {
 }
 
 // subscribe subscribes the dcrdata client to an event.
-func (c *Client) subscribe(event string) error {
+func (c *WSClient) subscribe(event string) error {
 	// Check connection status
 	switch c.Status() {
 	case StatusShutdown:
@@ -211,7 +225,7 @@ func (c *Client) subscribe(event string) error {
 }
 
 // unsubscribe ubsubscribes the dcrdata client from an event.
-func (c *Client) unsubscribe(event string) error {
+func (c *WSClient) unsubscribe(event string) error {
 	// Check connection status
 	switch c.Status() {
 	case StatusShutdown:
@@ -247,7 +261,7 @@ func (c *Client) unsubscribe(event string) error {
 }
 
 // Status returns the websocket status.
-func (c *Client) Status() StatusT {
+func (c *WSClient) Status() StatusT {
 	log.Tracef("Status")
 
 	c.Lock()
@@ -257,28 +271,28 @@ func (c *Client) Status() StatusT {
 }
 
 // AddressSubscribe subscribes to events for the provided address.
-func (c *Client) AddressSubscribe(address string) error {
+func (c *WSClient) AddressSubscribe(address string) error {
 	log.Tracef("AddressSubscribe: %v", address)
 
 	return c.subscribe(eventAddress + address)
 }
 
 // AddressUnsubscribe unsubscribes from events for the provided address.
-func (c *Client) AddressUnsubscribe(address string) error {
+func (c *WSClient) AddressUnsubscribe(address string) error {
 	log.Tracef("AddressUnsubscribe: %v", address)
 
 	return c.unsubscribe(eventAddress + address)
 }
 
 // NewBlockSubscribe subscibes to the new block event.
-func (c *Client) NewBlockSubscribe() error {
+func (c *WSClient) NewBlockSubscribe() error {
 	log.Tracef("NewBlockSubscribe")
 
 	return c.subscribe(eventNewBlock)
 }
 
 // NewBlockUnsubscribe unsubscibes from the new block event.
-func (c *Client) NewBlockUnsubscribe() error {
+func (c *WSClient) NewBlockUnsubscribe() error {
 	log.Tracef("NewBlockUnsubscribe")
 
 	return c.unsubscribe(eventNewBlock)
@@ -286,7 +300,7 @@ func (c *Client) NewBlockUnsubscribe() error {
 
 // Receive returns a new channel that receives websocket messages from the
 // dcrdata server.
-func (c *Client) Receive() <-chan *psclient.ClientMessage {
+func (c *WSClient) Receive() <-chan *psclient.ClientMessage {
 	log.Tracef("Receive")
 
 	// Hold the lock to prevent the go race detector from complaining
@@ -304,7 +318,7 @@ func (c *Client) Receive() <-chan *psclient.ClientMessage {
 // subscribe/unsubscribe events are registered during this reconnection
 // process, they are added to a pending events list and are replayed in the
 // order in which they are received once a new connection has been established.
-func (c *Client) Reconnect() {
+func (c *WSClient) Reconnect() {
 	log.Tracef("Reconnect")
 
 	// Update client status
@@ -428,7 +442,7 @@ func (c *Client) Reconnect() {
 }
 
 // Close closes the dcrdata websocket client.
-func (c *Client) Close() error {
+func (c *WSClient) Close() error {
 	log.Tracef("Close")
 
 	// Update websocket status
@@ -471,8 +485,8 @@ func psclientNew(url string) (*psclient.Client, error) {
 	return c, nil
 }
 
-// New returns a new Client.
-func New(dcrdataURL string) (*Client, error) {
+// New returns a new WSClient.
+func New(dcrdataURL string) (*WSClient, error) {
 	// Setup dcrdata connection. If there is an error when connecting
 	// to dcrdata, return both the error and the Client so that the
 	// caller can decide if reconnection attempts should be made.
@@ -487,7 +501,7 @@ func New(dcrdataURL string) (*Client, error) {
 		status = StatusShutdown
 	}
 
-	return &Client{
+	return &WSClient{
 		url:           dcrdataURL,
 		status:        status,
 		client:        c,

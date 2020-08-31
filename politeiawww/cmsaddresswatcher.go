@@ -20,6 +20,7 @@ import (
 	cms "github.com/decred/politeia/politeiawww/api/cms/v1"
 	www "github.com/decred/politeia/politeiawww/api/www/v1"
 	database "github.com/decred/politeia/politeiawww/cmsdatabase"
+
 	"github.com/decred/politeia/politeiawww/user"
 	"github.com/decred/politeia/util"
 	"github.com/decred/politeia/wsdcrdata"
@@ -185,8 +186,8 @@ func (p *politeiawww) restartCMSAddressesWatching() error {
 // after a certain time (in Unix seconds).
 func (p *politeiawww) checkHistoricalPayments(payment *database.Payments) bool {
 	// Get all txs since start time of watcher
-	txs, err := util.FetchTxsForAddressNotBefore(strings.TrimSpace(payment.Address),
-		payment.TimeStarted, p.dcrdataHostHTTP())
+	txs, err := p.txFetcher.FetchTxsForAddressNotBefore(strings.TrimSpace(payment.Address),
+		payment.TimeStarted)
 	if err != nil {
 		// XXX Some sort of 'recheck' or notice that it should do it again?
 		log.Errorf("error FetchTxsForAddressNotBefore for address %s: %v",
@@ -259,7 +260,7 @@ func (p *politeiawww) checkHistoricalPayments(payment *database.Payments) bool {
 // It will return TRUE if paid, otherwise false.  It utilizes the util
 // FetchTx which looks for transaction at a given address.
 func (p *politeiawww) checkPayments(payment *database.Payments, notifiedTx string) bool {
-	tx, err := util.FetchTx(payment.Address, notifiedTx, p.dcrdataHostHTTP())
+	tx, err := p.txFetcher.FetchTx(payment.Address, notifiedTx)
 	if err != nil {
 		log.Errorf("error FetchTxs for address %s: %v", payment.Address, err)
 		return false
